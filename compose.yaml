@@ -1,0 +1,156 @@
+services:
+  app:
+    image: ${APP_IMAGE:?Set APP_IMAGE in .env}
+    build:
+      context: .
+      args:
+        RELEASE_ID: ${RELEASE_ID:-dev}
+        VCS_REF: ${VCS_REF:-unknown}
+        VCS_URL: ${VCS_URL:-https://github.com/AlexKorobitsyn/Locals}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    logging: &service_logging
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: "${LOG_MAX_FILE:-3}"
+    environment: &app_environment
+      APP_NAME: ${APP_NAME:?Set APP_NAME in .env}
+      PORT: ${PORT:?Set PORT in .env}
+      LOG_LEVEL: ${LOG_LEVEL:?Set LOG_LEVEL in .env}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:?Set DB_POOL_SIZE in .env}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:?Set DB_MAX_OVERFLOW in .env}
+      DB_POOL_TIMEOUT_SECONDS: ${DB_POOL_TIMEOUT_SECONDS:?Set DB_POOL_TIMEOUT_SECONDS in .env}
+      DB_CONNECT_TIMEOUT_SECONDS: ${DB_CONNECT_TIMEOUT_SECONDS:?Set DB_CONNECT_TIMEOUT_SECONDS in .env}
+      DB_COMMAND_TIMEOUT_SECONDS: ${DB_COMMAND_TIMEOUT_SECONDS:?Set DB_COMMAND_TIMEOUT_SECONDS in .env}
+      HEALTH_TIMEOUT_SECONDS: ${HEALTH_TIMEOUT_SECONDS:?Set HEALTH_TIMEOUT_SECONDS in .env}
+      SHUTDOWN_TIMEOUT_SECONDS: ${SHUTDOWN_TIMEOUT_SECONDS:?Set SHUTDOWN_TIMEOUT_SECONDS in .env}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in .env}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:?Set JWT_ALGORITHM in .env}
+      JWT_ISSUER: ${JWT_ISSUER:?Set JWT_ISSUER in .env}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?Set JWT_AUDIENCE in .env}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:?Set ACCESS_TOKEN_TTL_MINUTES in .env}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:?Set REFRESH_TOKEN_TTL_DAYS in .env}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:?Set BCRYPT_ROUNDS in .env}
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+      RECOMMENDATION_FAVORITE_WEIGHT: ${RECOMMENDATION_FAVORITE_WEIGHT:-2}
+      RECOMMENDATION_RATED_WEIGHT: ${RECOMMENDATION_RATED_WEIGHT:-1}
+      RECOMMENDATION_QUALITY_WEIGHT: ${RECOMMENDATION_QUALITY_WEIGHT:-1}
+      RATING_PRIOR_STRENGTH: ${RATING_PRIOR_STRENGTH:-50}
+      RATING_PRIOR_MEAN: ${RATING_PRIOR_MEAN:-3}
+      RATING_WEIGHT_GREEN: ${RATING_WEIGHT_GREEN:-1}
+      RATING_WEIGHT_EXPERIENCED: ${RATING_WEIGHT_EXPERIENCED:-2}
+      RATING_WEIGHT_MODERATOR: ${RATING_WEIGHT_MODERATOR:-2}
+      RATING_WEIGHT_ADMIN: ${RATING_WEIGHT_ADMIN:-2}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:?Set S3_ENDPOINT_URL in .env}
+      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:?Set S3_PUBLIC_ENDPOINT_URL in .env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in .env}
+      S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET in .env}
+      S3_REGION: ${S3_REGION:?Set S3_REGION in .env}
+      S3_PRESIGN_TTL_SECONDS: ${S3_PRESIGN_TTL_SECONDS:?Set S3_PRESIGN_TTL_SECONDS in .env}
+      S3_CONNECT_TIMEOUT_SECONDS: ${S3_CONNECT_TIMEOUT_SECONDS:?Set S3_CONNECT_TIMEOUT_SECONDS in .env}
+      S3_READ_TIMEOUT_SECONDS: ${S3_READ_TIMEOUT_SECONDS:?Set S3_READ_TIMEOUT_SECONDS in .env}
+      S3_INIT_TIMEOUT_SECONDS: ${S3_INIT_TIMEOUT_SECONDS:?Set S3_INIT_TIMEOUT_SECONDS in .env}
+      S3_CORS_ORIGINS: ${S3_CORS_ORIGINS:?Set S3_CORS_ORIGINS in .env}
+      IMAGE_MAX_BYTES: ${IMAGE_MAX_BYTES:?Set IMAGE_MAX_BYTES in .env}
+      AUDIO_MAX_BYTES: ${AUDIO_MAX_BYTES:?Set AUDIO_MAX_BYTES in .env}
+      IMAGE_MAX_PIXELS: ${IMAGE_MAX_PIXELS:?Set IMAGE_MAX_PIXELS in .env}
+    ports:
+      - "${APP_BIND_HOST:-127.0.0.1}:${PORT:?Set PORT in .env}:${PORT:?Set PORT in .env}"
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+    stop_grace_period: ${STOP_GRACE_PERIOD:?Set STOP_GRACE_PERIOD in .env}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ['PORT'] + '/api/v1/health/ready', timeout=float(os.environ['HEALTH_TIMEOUT_SECONDS']))"
+      interval: ${HEALTHCHECK_INTERVAL:?Set HEALTHCHECK_INTERVAL in .env}
+      timeout: ${HEALTHCHECK_TIMEOUT:?Set HEALTHCHECK_TIMEOUT in .env}
+      retries: ${HEALTHCHECK_RETRIES:?Set HEALTHCHECK_RETRIES in .env}
+      start_period: ${HEALTHCHECK_START_PERIOD:?Set HEALTHCHECK_START_PERIOD in .env}
+
+  migrate:
+    image: ${APP_IMAGE:?Set APP_IMAGE in .env}
+    profiles: ["tools"]
+    environment: *app_environment
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+
+  storage:
+    profiles: [local]
+    restart: ${RESTART_POLICY:-unless-stopped}
+    logging: *service_logging
+    image: ${MINIO_IMAGE:?Set MINIO_IMAGE in .env}
+    build:
+      context: .
+      dockerfile: docker/minio.Dockerfile
+      args:
+        MINIO_RELEASE: ${MINIO_RELEASE:?Set MINIO_RELEASE in .env}
+    environment:
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_CORS_ALLOW_ORIGIN:?Set MINIO_CORS_ALLOW_ORIGIN in .env}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_BIND_HOST:-127.0.0.1}:${MINIO_PORT:?Set MINIO_PORT in .env}:9000"
+      - "${MINIO_BIND_HOST:-127.0.0.1}:${MINIO_CONSOLE_PORT:?Set MINIO_CONSOLE_PORT in .env}:9001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/minio/health/live', timeout=3)"]
+      interval: ${HEALTHCHECK_INTERVAL:?Set HEALTHCHECK_INTERVAL in .env}
+      timeout: ${HEALTHCHECK_TIMEOUT:?Set HEALTHCHECK_TIMEOUT in .env}
+      retries: ${HEALTHCHECK_RETRIES:?Set HEALTHCHECK_RETRIES in .env}
+      start_period: ${HEALTHCHECK_START_PERIOD:?Set HEALTHCHECK_START_PERIOD in .env}
+
+  storage-init:
+    image: ${APP_IMAGE:?Set APP_IMAGE in .env}
+    profiles: ["tools"]
+    environment: *app_environment
+    command: ["python", "-m", "APP.storage_init"]
+    depends_on:
+      storage:
+        condition: service_healthy
+        required: false
+
+  media-cleanup:
+    image: ${APP_IMAGE:?Set APP_IMAGE in .env}
+    profiles: ["tools"]
+    environment: *app_environment
+    command: ["python", "-m", "APP.media_cleanup"]
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+      storage:
+        condition: service_healthy
+        required: false
+
+  db:
+    profiles: [local]
+    restart: ${RESTART_POLICY:-unless-stopped}
+    logging: *service_logging
+    image: ${POSTGRES_IMAGE:?Set POSTGRES_IMAGE in .env}
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: ${HEALTHCHECK_INTERVAL:?Set HEALTHCHECK_INTERVAL in .env}
+      timeout: ${HEALTHCHECK_TIMEOUT:?Set HEALTHCHECK_TIMEOUT in .env}
+      retries: ${HEALTHCHECK_RETRIES:?Set HEALTHCHECK_RETRIES in .env}
+      start_period: ${HEALTHCHECK_START_PERIOD:?Set HEALTHCHECK_START_PERIOD in .env}
+
+volumes:
+  postgres_data:
+  minio_data:

@@ -1,19 +1,15 @@
-# APP/schemas/favorite.py
-from common import BaseSchema
 from datetime import datetime
 
+from APP.core.constants import FavoriteTarget
+from APP.schemas.common import BaseSchema, InputSchema, PositiveId
 
-class FavoriteEntityType(str, Enum):
-    track = "track"
-    album = "album"
-    artist = "artist"
-    playlist = "playlist"
-    event = "event"
-    venue = "venue"
+FavoriteEntityType = FavoriteTarget
 
-class FavoriteCreate(BaseSchema):
+
+class FavoriteCreate(InputSchema):
     entity_type: FavoriteEntityType
-    entity_id: int
+    entity_id: PositiveId
+
 
 class FavoriteRead(BaseSchema):
     id: int

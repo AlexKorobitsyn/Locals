@@ -1,4 +1,4 @@
-from .track import TrackOut
-from .event import EventOut
+from APP.schemas.event import EventOut
+from APP.schemas.track import TrackOut
 
-__all__ = ["TrackOut", "EventOut"]
+__all__ = ["EventOut", "TrackOut"]
