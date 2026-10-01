@@ -220,9 +220,13 @@ async def list_catalog(
     settings: Settings,
     artist_id: int | None = None,
     album_id: int | None = None,
+    *,
+    owner_id: int | None = None,
 ):
     model = MODELS[kind]
     filters = []
+    if owner_id is not None:
+        filters.append(model.user_id == owner_id)
     if artist_id is not None and kind == "album":
         filters.append(Album.artists.any(Artist.id == artist_id))
     if artist_id is not None and kind == "track":

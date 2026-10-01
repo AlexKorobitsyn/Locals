@@ -1,4 +1,5 @@
 from typing import Annotated, Literal
+from uuid import UUID
 
 from pydantic import EmailStr, Field, SecretStr, field_validator
 
@@ -35,3 +36,11 @@ class TokenPair(BaseSchema):
     token_type: Literal["bearer"] = "bearer"
     expires_in: PositiveInteger
     refresh_expires_in: PositiveInteger
+
+
+class BrowserToken(BaseSchema):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: PositiveInteger
+    user_id: PositiveInteger
+    session_id: UUID

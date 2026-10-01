@@ -242,7 +242,18 @@ FOR NO KEY UPDATE у пользователя сохраняет совмест�
 | `POST /api/v1/auth/refresh` | Обменять refresh-токен на новую пару |
 | `POST /api/v1/auth/logout` | Отозвать текущую сессию, вернуть `204` |
 | `GET /api/v1/me` | Получить собственный профиль с email и level |
+| `GET /api/v1/me/artists` | Список собственных артистов |
+| `GET /api/v1/me/albums` | Список собственных альбомов |
+| `GET /api/v1/me/tracks` | Список собственных треков |
 | `GET /api/v1/users/{user_id}` | Получить публичный профиль без email и level |
+
+Списки студии `/me/artists`, `/me/albums`, `/me/tracks` требуют Bearer-access
+и возвращают `Page` с `items`, `total`, `limit`, `offset`. Фильтр владельца
+применяется к странице и общему количеству по текущему пользователю;
+администратор также получает только свои записи. Параметры `limit`, `offset`
+и разрешённый `sort` работают так же, как у публичного каталога.
+Результаты содержат личную оценку и лайк; ответы имеют `Cache-Control: no-store`.
+Публичные списки сохраняют прежнее поведение. Изменение не требует миграций.
 
 Регистрация принимает JSON:
 
@@ -789,5 +800,22 @@ python -m scripts.check_migrations
 
 План React + TypeScript + Vite: [docs/frontend-plan.md](docs/frontend-plan.md).
 Он содержит этапы, критерии готовности, постоянный аудиоплеер, интеграцию оценок
-и библиотеки, а также необходимые дополнения браузерной авторизации. Код
-фронтенда будет добавляться в `frontend/` в этом же репозитории.
+и библиотеки, а также необходимые дополнения браузерной авторизации.
+Фронтенд реализован в [frontend/](frontend/README.md): каталог, постоянный плеер,
+оценки/рецензии, библиотека, рекомендации, студия с загрузкой медиа, события,
+площадки, профили, подписки и лента. Вход сохраняется после обновления страницы:
+refresh — HttpOnly cookie, access — в памяти. Существующий JSON API сохранён.
+
+Локальный запуск: `cd frontend`, `nvm install`, `nvm use`, `npm ci`, `npm run dev`.
+Нужен отдельно запущенный backend с `BROWSER_ALLOWED_ORIGINS` для адреса сайта
+и `BROWSER_COOKIE_SECURE=false` для локального HTTP. Переменные есть в `.env.example`.
+Для Docker после обновления кода пересоберите app.
+
+Раздельные frontend/backend контейнеры:
+
+```bash
+docker compose -f compose.yaml -f compose.frontend.yaml up -d --build app frontend
+```
+
+Frontend — `http://localhost:8080`, API проксируется к app. Подготовка БД/S3,
+настройки cookie и CORS медиа описаны в [frontend/README.md](frontend/README.md).

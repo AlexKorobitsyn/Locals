@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     jwt_audience: str = "music-service-api"
     access_token_ttl_minutes: int = Field(default=15, gt=0)
     refresh_token_ttl_days: int = Field(default=30, gt=0)
+    browser_allowed_origins: list[AnyHttpUrl] = Field(default_factory=list)
+    browser_cookie_secure: bool = True
     bcrypt_rounds: int = Field(default=12, ge=MIN_BCRYPT_ROUNDS, le=MAX_BCRYPT_ROUNDS)
     s3_endpoint_url: AnyHttpUrl | None = None
     s3_public_endpoint_url: AnyHttpUrl | None = None
@@ -140,7 +142,7 @@ class Settings(BaseSettings):
     release_id: str = "dev"
     cors_origins: list[AnyHttpUrl] = Field(default_factory=list)
 
-    @field_validator("cors_origins")
+    @field_validator("cors_origins", "browser_allowed_origins")
     @classmethod
     def validate_origins(cls, values):
         for value in values:

@@ -15,6 +15,7 @@ from APP.API.v1.playlist import router as playlist_router
 from APP.API.v1.rating import router as rating_router
 from APP.API.v1.recommendation import router as recommendation_router
 from APP.API.v1.review import router as review_router
+from APP.API.v1.studio import router as studio_router
 from APP.API.v1.tracks import router as track_router
 from APP.API.v1.user import router as user_router
 from APP.API.v1.venue import router as venue_router
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/api/v1")
 router.include_router(health_router)
 router.include_router(auth_router)
 router.include_router(user_router)
+router.include_router(studio_router)
 router.include_router(artist_router)
 router.include_router(album_router)
 router.include_router(track_router)

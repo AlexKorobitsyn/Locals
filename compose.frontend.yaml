@@ -1,0 +1,28 @@
+services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-locals-frontend:dev}
+    build:
+      context: frontend
+    restart: ${RESTART_POLICY:-unless-stopped}
+    environment:
+      FRONTEND_PORT: "8080"
+      API_UPSTREAM: http://app:${PORT:?Set PORT in .env}
+      IMAGE_MAX_BYTES: ${IMAGE_MAX_BYTES:?Set IMAGE_MAX_BYTES in .env}
+      AUDIO_MAX_BYTES: ${AUDIO_MAX_BYTES:?Set AUDIO_MAX_BYTES in .env}
+      UPLOAD_MAX_BODY_SIZE: ${UPLOAD_MAX_BODY_SIZE:-128m}
+      API_READ_TIMEOUT: ${API_READ_TIMEOUT:-600s}
+    ports:
+      - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOG_MAX_SIZE:-10m}
+        max-file: "${LOG_MAX_FILE:-3}"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/config.json"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

@@ -77,6 +77,24 @@ MinIO console не является публичным пользователь�
 не разрешены. На одном origin с `/api/v1` через proxy CORS не нужен.
 S3 и MinIO имеют свои отдельные CORS-настройки для браузерного `Range`.
 
+Frontend добавляется вторым Compose-файлом:
+`docker compose -f compose.yaml -f compose.frontend.yaml up -d --build app frontend`.
+Nginx отдаёт SPA и проксирует `/api` в отдельный контейнер app. Внешний порт
+задаётся `FRONTEND_PORT` (по умолчанию 8080), образ — `FRONTEND_IMAGE`.
+Для публичного HTTPS направьте TLS reverse proxy на frontend.
+
+`BROWSER_ALLOWED_ORIGINS` задаёт JSON-массив точных origins сайта для браузерных
+login/refresh/logout. Это отдельная проверка CSRF, необходимая и при одном origin.
+В production `BROWSER_COOKIE_SECURE=true` (значение по умолчанию), для локального
+HTTP — false. Refresh хранится в HttpOnly SameSite=Lax cookie; JSON API сохранён.
+После изменения backend-авторизации нужен новый образ app, миграции не добавлены.
+Origins сайта также добавляются в настройки S3/MinIO для воспроизведения медиа.
+
+Frontend получает лимиты `IMAGE_MAX_BYTES`/`AUDIO_MAX_BYTES` через `/config.json`
+при запуске контейнера. `UPLOAD_MAX_BODY_SIZE` и `API_READ_TIMEOUT` регулируют
+ограничение multipart и ожидание backend в Nginx. Эти значения не требуют
+пересборки SPA; `frontend/README.md` содержит инструкции и проверки.
+
 Долгоживущие контейнеры используют `RESTART_POLICY`, Docker ограничивает объём
 собираемых stdout-логов через `LOG_MAX_SIZE` и `LOG_MAX_FILE`. Параметры БД,
 JWT, лимиты файлов и коэффициенты рекомендаций также задаются env.

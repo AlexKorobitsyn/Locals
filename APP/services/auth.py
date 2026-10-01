@@ -170,3 +170,19 @@ async def logout_session(session: AsyncSession, session_id: UUID) -> None:
         )
         if user_id is not None:
             record_auth_event(session, "user_logged_out", user_id, session_id)
+
+
+async def logout_refresh_session(session: AsyncSession, refresh_token: str) -> None:
+    async with session.begin():
+        row = (
+            await session.execute(
+                select(AuthSession)
+                .where(
+                    AuthSession.refresh_token_hash == hash_refresh_token(refresh_token)
+                )
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is not None and row.revoked_at is None:
+            row.revoked_at = datetime.now(UTC)
+            record_auth_event(session, "user_logged_out", row.user_id, row.id)
