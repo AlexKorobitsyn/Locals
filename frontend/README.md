@@ -1,0 +1,164 @@
+# Locals frontend
+
+React, TypeScript, Vite, React Router и TanStack Query. Типы генерируются из
+FastAPI проекта. Все экраны используют настоящий backend; добавлены браузерная
+авторизация и списки собственных публикаций; публичный API сохранён.
+
+## Локальный запуск
+
+Нужны Node **22.22.0** из `.nvmrc` и backend на `http://127.0.0.1:8000`.
+Запуск Vite сам по себе backend не запускает. Добавьте в корневой `.env`
+и перезапустите backend (для Docker — пересоберите образ app):
+
+```dotenv
+BROWSER_ALLOWED_ORIGINS='["http://localhost:5173","http://127.0.0.1:5173","http://localhost:8080","http://127.0.0.1:8080"]'
+BROWSER_COOKIE_SECURE=false
+```
+
+Для production требуется `BROWSER_COOKIE_SECURE=true` и точный HTTPS origin
+сайта в `BROWSER_ALLOWED_ORIGINS`. При другом порте меняйте список origins.
+
+```bash
+cd frontend
+nvm install
+nvm use
+npm ci
+npm run dev
+```
+
+Откройте `http://127.0.0.1:5173`. Другой адрес backend:
+
+```bash
+API_PROXY_TARGET=http://127.0.0.1:8080 npm run dev
+```
+
+Можно скопировать `.env.example` в `.env.local`. `FRONTEND_HOST` и `FRONTEND_PORT`
+задают адрес Vite. Браузер обращается к относительному `/api/v1`; секреты и адрес
+backend не встроены в сборку. Шрифт поставляется вместе со SPA.
+
+## Реализованные экраны
+
+- Главная: рекомендации, причины подбора, фильтр наличия аудио, очередь.
+- Каталог: артисты, альбомы, треки, сортировка, пагинация, связанные записи.
+- Регистрация, вход после перезагрузки страницы, выход, любимые жанры.
+- Оценки с шагом 0.5, рецензии, лайки, библиотека и плейлисты.
+- Постоянный HTMLAudioElement: play/pause, seek, громкость, очередь,
+  следующий/предыдущий трек, обновление истёкшей ссылки.
+- Студия: список всех собственных публикаций, создание и редактирование артиста, альбома и трека; участники,
+  жанры, аудио, обложка, прогресс, отмена и повторное подключение файлов.
+- Площадки и события: город, даты, тип, сортировка, создание и редактирование,
+  удаление события, обложка площадки, оценки и рецензии площадок.
+- Подписки на артистов, площадки и пользователей, лента, публичные профили;
+  загрузка своего фото и обложки собственного плейлиста.
+
+Refresh хранится в **HttpOnly cookie**, access — только в памяти. Браузерные
+POST `/api/v1/auth/browser/login`, `/refresh`, `/logout` требуют разрешённый
+Origin и `X-CSRF-Protection: 1`. Cookie: ограниченный path, SameSite=Lax,
+Secure по умолчанию. Существующие JSON login/refresh/logout сохранены.
+Web Locks согласуют ротацию между вкладками одного origin; BroadcastChannel
+согласует вход, выход и обновление access. Logout отзывает сессию, удаляет cookie,
+очищает персональные запросы и очередь. Токены не записываются в browser storage.
+
+Студия читает все собственные публикации из `/api/v1/me/artists`,
+`/api/v1/me/albums`, `/api/v1/me/tracks`. Списки доступны после входа,
+поддерживают пагинацию и сортировку. Владельца backend определяет из сессии;
+передать ID другого пользователя для просмотра его кабинета нельзя.
+Во вкладках можно открыть запись, отредактировать её или добавить следующий трек.
+Формы альбома/трека предлагают только собственных артистов и альбомы.
+История в localStorage больше не используется; кабинет одинаков на всех устройствах.
+API редактирования имени/описания профиля и текстового поиска музыки отсутствует.
+
+## Загрузка и хранилище
+
+До отправки проверяются расширение, пустой файл и размер. Содержимое проверяет
+backend. JPEG/PNG/WebP — только статичные изображения; аудио — MP3/FLAC/WAV.
+Прогресс показывает передачу файла, после неё сервер проверяет и сохраняет его.
+Загрузка с истёкшим access один раз повторяется после cookie refresh.
+Если запись уже создана, повтор подключения файла использует её ID.
+
+`/config.json` отдаёт runtime-лимиты `IMAGE_MAX_BYTES` и `AUDIO_MAX_BYTES`.
+В Compose значения общие для frontend/backend; для Vite задайте их
+в `.env.local`, если сервер использует другие лимиты.
+Nginx: `UPLOAD_MAX_BODY_SIZE=128m`, `API_READ_TIMEOUT=600s` по умолчанию.
+При увеличении лимитов настройте и proxy.
+
+`S3_PUBLIC_ENDPOINT_URL` должен быть доступен браузеру. Для локального MinIO
+добавьте origins сайта в `MINIO_CORS_ALLOW_ORIGIN` через запятую и перезапустите
+storage. Для другого S3 задайте `S3_CORS_ORIGINS` JSON-массивом и выполните
+`storage-init`. В корневом `.env.example` учтены localhost/127.0.0.1 на 5173 и 8080.
+Bucket остаётся приватным; воспроизведение использует подписанные ссылки и Range.
+
+## Проверки
+
+Экспорт OpenAPI требует корневой `requirements.txt` в Python 3.12 env;
+экспортёр создаёт приложение без lifespan, БД и S3.
+
+```bash
+PYTHON_BIN=../.venv/bin/python npm run api:generate
+PYTHON_BIN=../.venv/bin/python npm run api:check
+npm run format:check
+npm test
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Альтернатива экспорта: `OPENAPI_URL=http://127.0.0.1:8000/api/v1/openapi.json`.
+`src/api/generated.ts` не редактировать вручную.
+
+Интеграционные Playwright-сценарии требуют **отдельной тестовой БД** с миграциями
+и backend с browser origins для `http://127.0.0.1:5173`, Secure=false.
+Добавьте справочники (CI создаёт их автоматически):
+
+```sql
+INSERT INTO genres (slug, name) VALUES ('frontend-rock', 'Frontend Rock');
+INSERT INTO cities (name, country, lat, lng, timezone)
+VALUES ('Frontend City', 'RU', 56.83, 60.60, 'Asia/Yekaterinburg');
+```
+
+```bash
+E2E_REAL_API=true E2E_MEDIA=true API_PROXY_TARGET=http://127.0.0.1:8000 npm run test:e2e
+```
+
+`E2E_MEDIA=true` включает сценарий настоящей загрузки в настроенный MinIO/S3;
+без него пропускается только этот сценарий. Без `E2E_REAL_API=true`
+пропускаются все пять сценариев настоящего backend. Тесты создают записи:
+используйте временные БД и bucket. Остановите другой Vite на порту 5173.
+
+Frontend CI проверяет контракт, форматирование, Vitest, сборку, Playwright
+с PostgreSQL 16 и MinIO, сборку и запуск контейнера Nginx. Backend CI сохранён.
+
+## Раздельные контейнеры
+
+Из корня, с настроенным `.env` и подготовленными БД/S3:
+
+```bash
+docker compose build app
+docker compose run --rm migrate
+docker compose run --rm storage-init
+docker compose -f compose.yaml -f compose.frontend.yaml up -d --build app frontend
+```
+
+Frontend доступен на `http://localhost:8080`; FastAPI работает в своём контейнере.
+`COMPOSE_PROFILES=local` включает существующие локальные PostgreSQL и MinIO;
+перед migrate/storage-init запустите их: `docker compose up -d db storage`.
+Frontend proxy направляет `/api` на `app:${PORT}`. В production добавьте TLS
+reverse proxy перед frontend и укажите HTTPS origin в настройках cookie и S3.
+
+Один образ можно переносить между окружениями с runtime env. Nginx работает
+без root, пишет стандартные логи в stdout/stderr, поддерживает вложенные маршруты.
+`FRONTEND_PORT` в корневом `.env` меняет внешний порт Compose.
+Для standalone-контейнера задайте `API_UPSTREAM` с доступным ему адресом backend.
+
+## Проверено локально — 1 октября 2026
+
+OpenAPI, Prettier, TypeScript и production build; 12 тестов Vitest;
+12 сценариев Playwright, из них пять на настоящем backend/PostgreSQL 16
+(один с MinIO). Проверены
+cookie после reload, несколько вкладок, logout, публикацию и редактирование,
+повтор после сбоя, обновление access при upload, Range/CORS, события и ленту.
+Студия проверена в независимом профиле браузера без localStorage: все три типа
+публикаций, пагинация, редактирование, выбор своих записей и смена аккаунта.
+Полный backend pytest с настоящими PostgreSQL 16 и MinIO: 211 passed.
+Образ SPA собран и запущен: вложенные маршруты, runtime-конфиг и API proxy проверены.
+GitHub workflow и развёртывание на вашем staging ещё не запускались.
