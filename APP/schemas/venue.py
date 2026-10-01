@@ -1,9 +1,9 @@
 # APP/schemas/venue.py
 
 from city import CityShort
-from pydantic import BaseModel
+from common import BaseSchema
 
-class VenueShort(BaseModel):
+class VenueShort(BaseSchema):
     id: int
     name: str
     cover_url: str | None

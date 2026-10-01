@@ -1,10 +1,10 @@
 # APP/schemas/artist.py
-from pydantic import BaseModel
+from common import BaseSchema
 from city import CityOut
 from genre import GenreOut
 from user import UserShort
 
-class ArtistShort(BaseModel):
+class ArtistShort(BaseSchema):
     id: int
     name: str
     image_url: str | None

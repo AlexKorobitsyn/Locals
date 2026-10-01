@@ -1,10 +1,10 @@
 # APP/schemas/user.py
 
-from pydantic import BaseModel
+from common import BaseSchema
 from datetime import datetime
 from city import CityOut
 
-class UserShort(BaseModel):
+class UserShort(BaseSchema):
     id: int
     display_name: str
     avatar_url: str | None

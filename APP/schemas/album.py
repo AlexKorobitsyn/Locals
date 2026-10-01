@@ -1,9 +1,9 @@
 # APP/schemas/album.py
-from pydantic import BaseModel
+from common import BaseSchema
 from datetime import date
 from artist import ArtistShort
 
-class AlbumShort(BaseModel):
+class AlbumShort(BaseSchema):
     id: int
     title: str
     cover_url: str | None

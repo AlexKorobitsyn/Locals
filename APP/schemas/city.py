@@ -1,14 +1,14 @@
 # app/schemas/city.py
-from pydantic import BaseModel
+from common import BaseSchema
 
 
-class CityShort(BaseModel):
+class CityShort(BaseSchema):
     id: int
     name: str
     class Config:
         from_attributes = True
 
-class CityOut(BaseModel):
+class CityOut(BaseSchema):
     id: int
     name: str
     region: str | None

@@ -1,8 +1,8 @@
 # APP/schemas/genre.py
 
-from pydantic import BaseModel
+from common import BaseSchema
 
-class GenreOut(BaseModel):
+class GenreOut(BaseSchema):
     id: int
     slug: str
     name: str
