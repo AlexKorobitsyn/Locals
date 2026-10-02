@@ -37,7 +37,7 @@ it('sends a numeric half-step and invalidates catalog, recommendations and revie
     query_client.setQueryData([key, 1], {});
   render_rating();
   const user = user_event.setup();
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Ваша оценка' }), '4.5');
+  await user.click(screen.getByRole('radio', { name: '4.5 из 5' }));
   await user.click(screen.getByRole('button', { name: 'Оценить' }));
   await screen.findByRole('status');
   const request = fetch_mock.mock.calls[0]?.[0] as Request;
@@ -59,4 +59,18 @@ it('requires confirmation before deleting the rating and review', async () => {
   const request = fetch_mock.mock.calls[0]?.[0] as Request;
   expect(request.method).toBe('DELETE');
   expect(request.url).toContain('/ratings/track/42');
+});
+
+it('chooses half-stars by keyboard and prevents submitting without a choice', async () => {
+  render_rating();
+  const user = user_event.setup();
+  expect(screen.getByRole('button', { name: 'Оценить' })).toBeDisabled();
+  expect(screen.queryByRole('radio', { name: '0.5 из 5' })).not.toBeInTheDocument();
+  await user.tab();
+  expect(screen.getByRole('radio', { name: '1 из 5' })).toHaveFocus();
+  await user.keyboard('{ArrowRight}');
+  expect(screen.getByRole('radio', { name: '1.5 из 5' })).toBeChecked();
+  await user.keyboard('{ArrowLeft}');
+  expect(screen.getByRole('radio', { name: '1 из 5' })).toBeChecked();
+  expect(screen.getByRole('button', { name: 'Оценить' })).toBeEnabled();
 });

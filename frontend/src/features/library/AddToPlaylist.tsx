@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -51,9 +52,10 @@ export function AddToPlaylist({ track_id }: { track_id: number }) {
             <div className="actions">
               <label>
                 Плейлист
-                <select
+                <Select
+                  label="Плейлист"
                   value={playlist_id}
-                  onChange={(event) => set_playlist_id(event.target.value)}
+                  on_change={(next_value) => set_playlist_id(next_value)}
                 >
                   <option value="">Выберите</option>
                   {playlists.map((playlist) => (
@@ -61,7 +63,7 @@ export function AddToPlaylist({ track_id }: { track_id: number }) {
                       {playlist.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <button
                 className="button"

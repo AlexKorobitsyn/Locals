@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { ListMusic, Pause, Play, SkipBack, SkipForward, Volume2, X } from 'lucide-react';
 import { Cover } from '../../components/Cover';
+import { TrackArtists } from '../../components/TrackArtists';
 import { format_duration, VOLUME_STEP } from '../../app/constants';
 import { use_player } from './PlayerProvider';
 
@@ -32,7 +33,13 @@ export function PlayerBar() {
                     onClick={() => select(index)}
                     aria-current={index === state.current_index ? 'true' : undefined}
                   >
-                    {item.title}
+                    <span className="queue-track">
+                      {item.title}
+                      <small>
+                        {item.artists?.map((artist) => artist.name).join(', ') ||
+                          'Артист не указан'}
+                      </small>
+                    </span>
                     <span>{format_duration(item.duration)}</span>
                   </button>
                 </li>
@@ -53,12 +60,17 @@ export function PlayerBar() {
               <strong>Музыка начинается с вас</strong>
             )}
             <small className="muted">
-              {state.status === 'loading'
-                ? 'Загружаем аудио…'
-                : track
-                  ? 'Locals · сейчас в плеере'
-                  : 'Выберите трек и нажмите play'}
+              {track ? (
+                <TrackArtists artists={track.artists || []} />
+              ) : (
+                'Выберите трек и нажмите play'
+              )}
             </small>
+            {state.status === 'loading' && (
+              <small className="muted" role="status">
+                Загружаем аудио…
+              </small>
+            )}
           </div>
         </div>
         <div className="player-center">

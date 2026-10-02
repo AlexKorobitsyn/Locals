@@ -3102,9 +3102,9 @@ export interface components {
             duration: number;
             /** Cover Url */
             cover_url?: string | null;
-            album?: components["schemas"]["AlbumShort"] | null;
             /** Artists */
             artists?: components["schemas"]["ArtistShort"][];
+            album?: components["schemas"]["AlbumShort"] | null;
             /** Genres */
             genres?: components["schemas"]["GenreOut"][];
             /** Lyrics */
@@ -3155,6 +3155,8 @@ export interface components {
             duration: number;
             /** Cover Url */
             cover_url?: string | null;
+            /** Artists */
+            artists?: components["schemas"]["ArtistShort"][];
             /** Rating Avg */
             readonly rating_avg: number | null;
         };

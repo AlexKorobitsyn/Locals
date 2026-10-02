@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { can_moderate } from '../../app/permissions';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -15,6 +16,7 @@ import {
 } from '../../app/constants';
 import { invalidate_music } from '../../app/query';
 import { Cover } from '../../components/Cover';
+import { TrackArtists } from '../../components/TrackArtists';
 import { Pagination } from '../../components/Pagination';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
 import { use_auth } from '../auth/AuthProvider';
@@ -156,6 +158,9 @@ function PlaylistContent() {
                   </button>
                   <div className="track-row-title">
                     <Link to={`/tracks/${item.track.id}`}>{item.track.title}</Link>
+                    <small className="muted">
+                      <TrackArtists artists={item.track.artists || []} />
+                    </small>
                     <RatingBadge
                       rating_avg={item.track.rating_avg}
                       my_rating={item.track.my_rating}
@@ -271,13 +276,14 @@ function PlaylistEditor({ playlist }: { playlist: components['schemas']['Playlis
       </label>
       <label>
         Доступ
-        <select
+        <Select
+          label="Видимость"
           value={visibility}
-          onChange={(event) => set_visibility(event.target.value as typeof visibility)}
+          on_change={(next_value) => set_visibility(next_value as typeof visibility)}
         >
           <option value="private">Только мне</option>
           <option value="public">Всем</option>
-        </select>
+        </Select>
       </label>
       <div className="actions">
         <button className="button primary" disabled={mutation.isPending || !name.trim()}>

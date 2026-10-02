@@ -35,6 +35,7 @@ it('lets a newcomer propose lyrics and genres without an experience gate', async
   wrap(<ContributionForm target_type="track" target_id={42} />);
   const user = user_event.setup();
   await user.click(screen.getByRole('button', { name: 'Предложить исправление' }));
+  await user.click(screen.getByRole('combobox', { name: 'Что изменить' }));
   expect(screen.getByRole('option', { name: 'Текст песни' })).toBeInTheDocument();
   expect(screen.getByRole('option', { name: 'Жанры' })).toBeInTheDocument();
   expect(screen.getByRole('option', { name: 'Название' })).toBeInTheDocument();

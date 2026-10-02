@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { ProposalCard, LEVEL_NAMES } from '../auth/ContributionPage';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
@@ -372,10 +373,11 @@ function UserForm({ initial, on_close }: { initial: User; on_close: () => void }
           <>
             <label>
               Роль
-              <select
+              <Select
+                label="Роль"
                 value={level}
-                onChange={(event) => {
-                  const value = event.target.value as User['level'];
+                on_change={(next_value) => {
+                  const value = next_value as User['level'];
                   set_level(value);
                   if (value === 'green') {
                     set_tier(0);
@@ -387,14 +389,15 @@ function UserForm({ initial, on_close }: { initial: User; on_close: () => void }
                 <option value="green">Пользователь</option>
                 <option value="experienced">Опытный участник</option>
                 <option value="moderator">Модератор</option>
-              </select>
+              </Select>
             </label>
             <label>
               Уровень опыта
-              <select
+              <Select
+                label="Уровень опыта"
                 value={tier}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
+                on_change={(next_value) => {
+                  const value = Number(next_value);
                   set_tier(value);
                   set_scene_verified(value >= 3);
                   if (level !== 'moderator') set_level(value ? 'experienced' : 'green');
@@ -406,7 +409,7 @@ function UserForm({ initial, on_close }: { initial: User; on_close: () => void }
                     {index + 1} — {name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label>
               <input
@@ -655,18 +658,18 @@ function ModerationQueue() {
     <>
       <div className="section-heading">
         <h2>Предложения участников</h2>
-        <select
-          aria-label="Статус заявки"
+        <Select
+          label="Статус заявки"
           value={status}
-          onChange={(event) => {
-            set_status(event.target.value);
+          on_change={(next_value) => {
+            set_status(next_value);
             set_offset(0);
           }}
         >
           <option value="pending">Ожидают проверки</option>
           <option value="approved">Приняты</option>
           <option value="rejected">Отклонены</option>
-        </select>
+        </Select>
       </div>
       {query.isPending ? (
         <LoadingState />
@@ -776,10 +779,14 @@ function CommunityAwardEditor({ id }: { id: number }) {
       <h3>Награда сообщества</h3>
       <label>
         Номинация
-        <select value={kind} onChange={(event) => set_kind(event.target.value as typeof kind)}>
+        <Select
+          label="Номинация"
+          value={kind}
+          on_change={(next_value) => set_kind(next_value as typeof kind)}
+        >
           <option value="curator_week">Куратор недели</option>
           <option value="reviewer_month">Топ рецензентов месяца</option>
-        </select>
+        </Select>
       </label>
       <label>
         Начало периода

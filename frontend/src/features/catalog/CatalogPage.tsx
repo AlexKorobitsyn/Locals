@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -6,6 +7,7 @@ import { catalog_page, type CatalogFilters, type CatalogKind } from '../../api/c
 import type { components } from '../../api/generated';
 import { format_duration, PAGE_LIMIT } from '../../app/constants';
 import { Cover } from '../../components/Cover';
+import { TrackArtists } from '../../components/TrackArtists';
 import { EmptyState, ErrorState, LoadingState } from '../../components/States';
 import { Pagination } from '../../components/Pagination';
 import { use_auth } from '../auth/AuthProvider';
@@ -73,16 +75,17 @@ export function CatalogPage({ kind }: { kind: CatalogKind }) {
         </nav>
         <label className="sort-control">
           Сортировка
-          <select
+          <Select
+            label="Сортировка"
             value={sort}
-            onChange={(event) => set_search_params({ sort: event.target.value, offset: '0' })}
+            on_change={(next_value) => set_search_params({ sort: next_value, offset: '0' })}
           >
             {sorts.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
       <CatalogList key={kind} kind={kind} sort={sort} offset={offset} on_change={change_offset} />
@@ -187,7 +190,7 @@ export function CatalogCard({
         </h3>
         {'artists' in item && (
           <p className="muted card-artists">
-            {(item.artists || []).map((artist) => artist.name).join(', ') || 'Артисты не указаны'}
+            <TrackArtists artists={item.artists || []} />
           </p>
         )}
         <RatingBadge

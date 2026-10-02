@@ -53,7 +53,7 @@ test('register, rate 4.5, review, Liked, playlist ordering and privacy against F
   }
   await page.getByRole('link', { name: 'Треки', exact: true }).first().click();
   await page.getByRole('heading', { name: first_title }).getByRole('link').click();
-  await page.getByRole('combobox', { name: 'Ваша оценка', exact: true }).selectOption('4.5');
+  await page.getByRole('radio', { name: '4.5 из 5', exact: true }).check();
   await page.getByRole('button', { name: 'Оценить', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Ваша оценка: 4.5' })).toBeVisible();
   await page.getByLabel('Ваша рецензия').fill('Музыка для внимательного слушателя.');
@@ -73,9 +73,8 @@ test('register, rate 4.5, review, Liked, playlist ordering and privacy against F
     await page.getByRole('link', { name: 'Треки', exact: true }).first().click();
     await page.getByRole('heading', { name: title }).getByRole('link').click();
     await page.getByRole('button', { name: 'Добавить в плейлист', exact: true }).click();
-    await page
-      .getByRole('combobox', { name: 'Плейлист', exact: true })
-      .selectOption(String(playlist_id));
+    await page.getByRole('combobox', { name: 'Плейлист', exact: true }).click();
+    await page.getByRole('option', { name: 'E2E Mix', exact: true }).click();
     await page.getByRole('button', { name: 'Добавить трек', exact: true }).click();
     await expect(page.getByRole('status')).toHaveText('Трек добавлен.');
   }

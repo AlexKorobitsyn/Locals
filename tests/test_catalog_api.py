@@ -332,3 +332,56 @@ def test_catalog_audit_failure_rolls_back_creation(api_client, account, catalog_
     with pytest.raises(IntegrityError):
         api_client.post("/api/v1/artists", headers=headers, json={"name": "Rollback"})
     assert catalog_db.execute("SELECT count(*) AS count FROM artists")[0]["count"] == 0
+
+
+def test_track_lists_include_all_artists_without_duplicate_credits(api_client, account):
+    _, headers = account()
+    artists = [
+        create(api_client, "artists", headers, {"name": name})
+        for name in ("Solo", "Guest")
+    ]
+    track = create(
+        api_client,
+        "tracks",
+        headers,
+        {
+            "title": "Duet",
+            "duration": 120,
+            "artist_credits": [
+                {"artist_id": artists[0]["id"], "role": "vocals"},
+                {"artist_id": artists[0]["id"], "role": "guitar"},
+                {"artist_id": artists[1]["id"], "role": "vocals"},
+            ],
+        },
+    )
+    expected = {artist["id"]: artist["name"] for artist in artists}
+    for path in ("/api/v1/tracks", "/api/v1/me/tracks"):
+        response = api_client.get(path, headers=headers)
+        assert response.status_code == 200, response.text
+        item = response.json()["items"][0]
+        assert item["id"] == track["id"]
+        assert len(item["artists"]) == len(expected)
+        assert {artist["id"]: artist["name"] for artist in item["artists"]} == expected
+    playlist = create(api_client, "playlists", headers, {"name": "Duets"})
+    response = api_client.post(
+        f"/api/v1/playlists/{playlist['id']}/tracks",
+        headers=headers,
+        json={"track_id": track["id"]},
+    )
+    assert response.status_code == 204, response.text
+    response = api_client.put(
+        "/api/v1/favorites",
+        headers=headers,
+        json={"entity_type": "track", "entity_id": track["id"]},
+    )
+    assert response.status_code == 200, response.text
+    playlists = api_client.get("/api/v1/me/playlists", headers=headers).json()["items"]
+    liked = next(item for item in playlists if item["kind"] == "liked")
+    for playlist_id in (playlist["id"], liked["id"]):
+        response = api_client.get(
+            f"/api/v1/playlists/{playlist_id}/tracks", headers=headers
+        )
+        assert response.status_code == 200, response.text
+        item = response.json()["items"][0]["track"]
+        assert len(item["artists"]) == len(expected)
+        assert {artist["id"]: artist["name"] for artist in item["artists"]} == expected

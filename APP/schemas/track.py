@@ -38,12 +38,11 @@ class TrackShort(BaseSchema):
 
 
 class TrackRatedShort(TrackShort, RatingFields):
-    pass
+    artists: list[ArtistShort] = Field(default_factory=list)
 
 
 class TrackOut(TrackRatedShort):
     album: AlbumShort | None = None
-    artists: list[ArtistShort] = Field(default_factory=list)
     genres: list[GenreOut] = Field(default_factory=list)
     lyrics: str | None = None
     created_at: datetime

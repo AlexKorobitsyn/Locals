@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { LEVEL_NAMES, ProposalCard } from './ContributionPage';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -297,16 +298,15 @@ export function ContributionForm({
           <h3>Предложение на проверку</h3>
           <label>
             Что изменить
-            <select
+            <Select
+              label="Что изменить"
               value={field}
-              onChange={(event) =>
-                set_field(event.target.value as 'lyrics' | 'genres' | 'metadata')
-              }
+              on_change={(next_value) => set_field(next_value as 'lyrics' | 'genres' | 'metadata')}
             >
               {target_type === 'track' && <option value="lyrics">Текст песни</option>}
               <option value="genres">Жанры</option>
               <option value="metadata">Название</option>
-            </select>
+            </Select>
           </label>
           {field === 'lyrics' ? (
             <label>

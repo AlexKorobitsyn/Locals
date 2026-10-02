@@ -145,13 +145,14 @@ test('newcomer binds an event by clicking a venue and picks coordinates for a ve
   await page.getByLabel('Пароль', { exact: true }).fill(credentials.password);
   await page.getByRole('button', { name: 'Войти', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Новое событие.' })).toBeVisible();
-  await page.getByRole('combobox', { name: 'Город', exact: true }).selectOption(String(city.id));
+  await page.getByRole('combobox', { name: 'Город', exact: true }).click();
+  await page.getByRole('option', { name: city.name, exact: true }).click();
   await page.getByRole('button', { name: venue_name, exact: true }).click();
   await expect(
     page.getByText('Место события берётся из площадки.', { exact: false }),
   ).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Площадка', exact: true })).toHaveValue(
-    String(created_venue.id),
+  await expect(page.getByRole('combobox', { name: 'Площадка', exact: true })).toHaveText(
+    venue_name,
   );
   const event_name = `Bound event ${crypto.randomUUID()}`;
   await page.getByLabel('Название', { exact: true }).fill(event_name);
@@ -171,7 +172,8 @@ test('newcomer binds an event by clicking a venue and picks coordinates for a ve
   expect((await request.get(`/api/v1/events/${saved_event.id}`)).status()).toBe(404);
   await page.goto('/venues/new');
   await page.getByLabel('Название', { exact: true }).fill(`New map venue ${crypto.randomUUID()}`);
-  await page.getByRole('combobox', { name: 'Город', exact: true }).selectOption(String(city.id));
+  await page.getByRole('combobox', { name: 'Город', exact: true }).click();
+  await page.getByRole('option', { name: city.name, exact: true }).click();
   await page
     .getByRole('region', { name: 'Выбор места площадки' })
     .click({ position: { x: 180, y: 110 } });

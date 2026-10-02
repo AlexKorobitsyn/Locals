@@ -1,3 +1,4 @@
+import { Select } from './Select';
 import { can_edit_public } from '../app/permissions';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api, unwrap } from '../api/client';
@@ -75,10 +76,10 @@ export function EntityPicker({
     <div className="picker-field">
       <label>
         {label}
-        <select
-          aria-label={label}
+        <Select
+          label={label}
           value={value || ''}
-          onChange={(event) => on_change(Number(event.target.value) || null)}
+          on_change={(next_value) => on_change(Number(next_value) || null)}
           required={required}
           disabled={disabled || query.isPending}
         >
@@ -91,7 +92,7 @@ export function EntityPicker({
               {'name' in item ? item.name : item.title}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       {query.hasNextPage && (
         <button

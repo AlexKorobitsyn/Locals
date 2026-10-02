@@ -290,7 +290,7 @@ async def playlist_tracks(session, playlist_id, viewer, settings, limit, offset)
         )
     query = with_engagement(
         with_my_rating(source, Track, "track", viewer), Track, "track", viewer
-    )
+    ).options(selectinload(Track.artists))
     rows = (await session.execute(query.limit(limit).offset(offset))).all()
     items = [
         PlaylistTrackItem(

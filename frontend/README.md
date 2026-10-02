@@ -99,7 +99,7 @@ PYTHON_BIN=../.venv/bin/python npm run api:check
 npm run format:check
 npm test
 npm run build
-npx playwright install chromium
+npx playwright install chromium firefox
 npm run test:e2e
 ```
 

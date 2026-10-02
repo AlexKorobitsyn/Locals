@@ -125,7 +125,7 @@ jobs:
           PY
       - name: Browser tests against FastAPI and PostgreSQL
         run: |
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium firefox
           npm run test:e2e
       - name: Build standalone SPA image
         working-directory: .

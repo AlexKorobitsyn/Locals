@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import { Star } from 'lucide-react';
@@ -8,6 +8,9 @@ import { RATING_VALUES } from '../../app/constants';
 import { invalidate_music } from '../../app/query';
 import { ErrorState } from '../../components/States';
 import { use_auth } from '../auth/AuthProvider';
+
+const RATING_STARS = RATING_VALUES.filter(Number.isInteger);
+const STAR_FILL_PERCENT = 100;
 
 export function RatingBadge({
   rating_avg,
@@ -41,8 +44,11 @@ export function RatingControl({
 }) {
   const { user } = use_auth();
   const location = useLocation();
-  const [selected_value, set_selected_value] = useState(my_rating == null ? '' : String(my_rating));
+  const [selected_value, set_selected_value] = useState(my_rating);
+  const [preview_value, set_preview_value] = useState<number | null>(null);
+  const rating_id = useId();
   const [confirm_delete, set_confirm_delete] = useState(false);
+  useEffect(() => set_selected_value(my_rating), [my_rating]);
   const mutation = useMutation({
     mutationFn: async (value: number | null) =>
       value === null
@@ -54,7 +60,7 @@ export function RatingControl({
         : unwrap(await api.PUT('/api/v1/ratings', { body: { target_type, target_id, value } })),
     onSuccess: async (_, value) => {
       set_confirm_delete(false);
-      if (value === null) set_selected_value('');
+      set_selected_value(value);
       await invalidate_music();
     },
   });
@@ -73,30 +79,52 @@ export function RatingControl({
     );
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (selected_value) mutation.mutate(Number(selected_value));
+    if (selected_value !== null) mutation.mutate(selected_value);
   }
   return (
     <div className="panel rate-panel">
       <h2>{my_rating == null ? 'Как вам эта музыка?' : `Ваша оценка: ${my_rating}`}</h2>
       <p className="muted">От 1 до 5 с шагом 0,5. Оценки формируют ваши рекомендации.</p>
       <form className="actions" onSubmit={submit}>
-        <label>
-          Ваша оценка
-          <select
-            value={selected_value}
-            onChange={(event) => set_selected_value(event.target.value)}
-            required
-            disabled={mutation.isPending}
-          >
-            <option value="">Выберите</option>
-            {RATING_VALUES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
+        <fieldset className="rating-field" disabled={mutation.isPending}>
+          <legend>Ваша оценка</legend>
+          <div className="rating-stars" onPointerLeave={() => set_preview_value(null)}>
+            {RATING_STARS.map((star) => (
+              <span className="rating-star" key={star}>
+                <Star className="star-outline" aria-hidden="true" />
+                <span
+                  className="star-fill"
+                  style={{
+                    width: `${Math.max(0, Math.min(1, (preview_value ?? selected_value ?? 0) - star + 1)) * STAR_FILL_PERCENT}%`,
+                  }}
+                >
+                  <Star aria-hidden="true" />
+                </span>
+                {RATING_VALUES.filter((value) => Math.ceil(value) === star).map((value) => (
+                  <label
+                    key={value}
+                    className={`rating-hit ${star === 1 ? 'star-whole' : Number.isInteger(value) ? 'star-right' : 'star-left'}`}
+                    onPointerEnter={() => set_preview_value(value)}
+                    onPointerUp={() => set_preview_value(null)}
+                  >
+                    <input
+                      type="radio"
+                      name={rating_id}
+                      value={value}
+                      aria-label={`${value} из 5`}
+                      checked={selected_value === value}
+                      onChange={() => set_selected_value(value)}
+                    />
+                  </label>
+                ))}
+              </span>
             ))}
-          </select>
-        </label>
-        <button className="button primary" disabled={mutation.isPending}>
+          </div>
+          <small className="muted">
+            {selected_value === null ? 'Выберите звезду или её половину' : `${selected_value} из 5`}
+          </small>
+        </fieldset>
+        <button className="button primary" disabled={mutation.isPending || selected_value === null}>
           {my_rating == null ? 'Оценить' : 'Изменить оценку'}
         </button>
         {my_rating != null && (

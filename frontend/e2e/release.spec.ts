@@ -133,11 +133,14 @@ test('studio lists server publications on another device with pagination and own
 
   await page.goto('/studio/albums/new');
   const picker = page.getByRole('combobox', { name: 'Выбрать артиста', exact: true });
-  await expect(picker.locator('option')).toHaveCount(PAGE_LIMIT + 1);
+  await picker.click();
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(PAGE_LIMIT + 1);
+  await picker.press('Escape');
   await page.getByRole('button', { name: 'Показать ещё', exact: true }).click();
-  await expect(picker.locator('option')).toHaveCount(own_artists.length + 1);
-  await expect(picker.locator('option').filter({ hasText: foreign_artist.name })).toHaveCount(0);
-  await picker.selectOption(String(first_artist.id));
+  await picker.click();
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(own_artists.length + 1);
+  await expect(page.getByRole('option', { name: foreign_artist.name, exact: true })).toHaveCount(0);
+  await page.getByRole('option', { name: first_artist.name, exact: true }).click();
   await page.getByRole('button', { name: 'Добавить артиста', exact: true }).click();
   await expect(page.locator('.artist-selection')).toContainText(first_artist.name);
 
@@ -352,7 +355,8 @@ test('venue, event filters and editing; following exposes venue activity in the 
   const event_name = `Event ${crypto.randomUUID()}`;
   await page.goto('/venues/new');
   await page.getByLabel('Название', { exact: true }).fill(venue_name);
-  await page.getByRole('combobox', { name: 'Город', exact: true }).selectOption(String(city.id));
+  await page.getByRole('combobox', { name: 'Город', exact: true }).click();
+  await page.getByRole('option', { name: city.name, exact: true }).click();
   await page.getByLabel('Широта', { exact: true }).fill('56.83');
   await page.getByLabel('Долгота', { exact: true }).fill('60.60');
   await page.getByRole('button', { name: 'Создать площадку', exact: true }).click();

@@ -256,7 +256,7 @@ async def list_catalog(
         .select_from(total.outerjoin(page_query, true()))
         .order_by(*sort_columns(kind, sort, settings, entity))
     )
-    if kind == "album":
+    if kind in ("album", "track"):
         query = query.options(selectinload(entity.artists))
     rows = (
         await session.execute(

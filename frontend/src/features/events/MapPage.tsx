@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { useEffect, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
@@ -154,9 +155,10 @@ export function MapPage() {
             </label>
             <label>
               Тип события
-              <select
+              <Select
+                label="Тип события"
                 value={search.get('type_event_id') || ''}
-                onChange={(event) => change('type_event_id', event.target.value)}
+                on_change={(next_value) => change('type_event_id', next_value)}
               >
                 <option value="">Все типы</option>
                 {types.data?.map((type) => (
@@ -164,7 +166,7 @@ export function MapPage() {
                     {type.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <small className="muted">
               По умолчанию — предстоящие события. Время:{' '}

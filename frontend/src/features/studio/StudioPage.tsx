@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { can_create_scene } from '../../app/permissions';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -57,13 +58,17 @@ function Publications() {
         </nav>
         <label className="sort-control">
           Сортировка публикаций
-          <select value={sort} onChange={(event) => set_search({ kind, sort: event.target.value })}>
+          <Select
+            label="Сортировка публикаций"
+            value={sort}
+            on_change={(next_value) => set_search({ kind, sort: next_value })}
+          >
             {sorts.map((entry) => (
               <option key={entry.value} value={entry.value}>
                 {entry.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
       {query.isPending ? (

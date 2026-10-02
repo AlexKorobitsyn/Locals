@@ -2,7 +2,6 @@ from typing import Literal
 
 from pydantic import Field
 
-from APP.schemas.artist import ArtistShort
 from APP.schemas.common import BaseSchema
 from APP.schemas.genre import GenreOut
 from APP.schemas.pagination import Page
@@ -23,7 +22,6 @@ class RecommendationScore(BaseSchema):
 
 
 class RecommendedTrack(TrackRatedShort):
-    artists: list[ArtistShort] = Field(default_factory=list)
     genres: list[GenreOut] = Field(default_factory=list)
     is_playable: bool = False
     matched_favorite_genres: list[GenreOut] = Field(default_factory=list)

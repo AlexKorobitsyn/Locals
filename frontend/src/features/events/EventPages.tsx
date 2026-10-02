@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select';
 import { can_edit_public, can_create_scene } from '../../app/permissions';
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -124,7 +125,11 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
         />
         <label>
           Сортировка
-          <select value={sort} onChange={(event) => change_filter('sort', event.target.value)}>
+          <Select
+            label="Сортировка"
+            value={sort}
+            on_change={(next_value) => change_filter('sort', next_value)}
+          >
             {sort_values.map((value) => (
               <option key={value} value={value}>
                 {
@@ -139,7 +144,7 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
                 }
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         {!venues && (
           <>
@@ -161,9 +166,10 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
             </label>
             <label>
               Тип события
-              <select
+              <Select
+                label="Тип события"
                 value={search.get('type_event_id') || ''}
-                onChange={(event) => change_filter('type_event_id', event.target.value)}
+                on_change={(next_value) => change_filter('type_event_id', next_value)}
               >
                 <option value="">Все типы</option>
                 {types.data?.map((type) => (
@@ -171,7 +177,7 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
                     {type.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <small className="muted">
               Даты и время — в часовом поясе вашего устройства:{' '}

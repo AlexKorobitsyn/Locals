@@ -40,9 +40,8 @@ test('newcomer proposes a venue, owner protects lyrics, admin assigns a level an
   await page.getByRole('link', { name: 'Предложить площадку', exact: true }).click();
   await page.getByLabel('Название', { exact: true }).fill(`Pending venue ${suffix}`);
   const cities = await (await request.get('/api/v1/cities?q=Frontend%20City')).json();
-  await page
-    .getByRole('combobox', { name: 'Город', exact: true })
-    .selectOption(String(cities.items[0].id));
+  await page.getByRole('combobox', { name: 'Город', exact: true }).click();
+  await page.getByRole('option', { name: cities.items[0].name, exact: true }).click();
   await page.getByLabel('Широта', { exact: true }).fill('56.83');
   await page.getByLabel('Долгота', { exact: true }).fill('60.60');
   await page.getByRole('button', { name: 'Предложить площадку', exact: true }).click();
@@ -56,7 +55,8 @@ test('newcomer proposes a venue, owner protects lyrics, admin assigns a level an
   await page.getByLabel('Поиск по имени или email').fill(credentials.email);
   const card = page.locator('article').filter({ hasText: credentials.email });
   await card.getByRole('button', { name: 'Редактировать', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Уровень опыта', exact: true }).selectOption('8');
+  await page.getByRole('combobox', { name: 'Уровень опыта', exact: true }).click();
+  await page.getByRole('option', { name: '9 — Легенда', exact: true }).click();
   await expect(page.getByLabel('Подтверждённый организатор: публикация без очереди')).toBeChecked();
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await page.getByRole('button', { name: 'Подтвердить', exact: true }).click();

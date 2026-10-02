@@ -1,3 +1,4 @@
+import { Select } from './Select';
 import { useEffect, useState } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { api, unwrap } from '../api/client';
@@ -51,14 +52,15 @@ export function CityPicker({
       </label>
       <label>
         Город
-        <select
-          aria-label="Город"
+        <Select
+          label="Город"
           value={value || ''}
           required={required}
           disabled={query.isPending}
-          onChange={(event) => {
-            on_change(Number(event.target.value) || null);
-            set_selected_name(event.target.selectedOptions[0]?.text || '');
+          on_change={(next_value) => {
+            on_change(Number(next_value) || null);
+            const city = items.find((item) => String(item.id) === next_value);
+            set_selected_name(city ? `${city.name}${city.region ? ` · ${city.region}` : ''}` : '');
           }}
         >
           <option value="">{required ? 'Выберите город' : 'Все города / не указан'}</option>
@@ -71,7 +73,7 @@ export function CityPicker({
               {city.region ? ` · ${city.region}` : ''}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       {query.hasNextPage && (
         <button
