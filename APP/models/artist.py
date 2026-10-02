@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, Identity, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from APP.core.constants import NAME_MAX_LENGTH
@@ -24,6 +25,7 @@ class Artist(RatedMixin, TimestampMixin, Base):
         CheckConstraint("length(btrim(name)) > 0", name="name_nonempty"),
     )
 
+    owner_fields: Mapped[list[str]] = mapped_column(JSONB, server_default="[]")
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     name: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH), index=True)
     bio: Mapped[str | None] = mapped_column(Text)

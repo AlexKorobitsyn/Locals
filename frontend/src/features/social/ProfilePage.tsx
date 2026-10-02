@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router';
+import { can_moderate } from '../../app/permissions';
 import { api, unwrap } from '../../api/client';
 import { ApiError } from '../../api/errors';
 import { parse_id } from '../../app/constants';
@@ -34,6 +35,16 @@ export function ProfilePage() {
             {profile.city ? ` · ${profile.city.name}` : ''}
           </span>
           <h1>{profile.display_name}</h1>
+          <p className="eyebrow">
+            {profile.level_name} · уровень {profile.experience_level} · {profile.experience_points}{' '}
+            XP
+          </p>
+          {profile.scene_verified && <p>Подтверждённый организатор</p>}
+          {can_moderate(user?.level) && (
+            <Link className="button" to="/admin?section=profiles">
+              Редактировать публичные профили
+            </Link>
+          )}
           <p className="muted">
             {profile.followers_count || 0} подписчиков · {profile.following_count || 0} подписок
           </p>

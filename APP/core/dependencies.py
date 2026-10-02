@@ -116,3 +116,8 @@ def require_owner(owner_id: int | None, user: User) -> None:
 def require_owner_or_privileged(owner_id: int | None, user: User) -> None:
     if user.level not in PRIVILEGED_LEVELS:
         require_owner(owner_id, user)
+
+
+def require_owner_or_admin(owner_id: int | None, user: User) -> None:
+    if user.level != UserLevel.admin:
+        require_owner(owner_id, user)

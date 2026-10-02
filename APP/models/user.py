@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Identity,
     Index,
+    Integer,
     Numeric,
     String,
     Text,
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
 class User(TimestampMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
+        CheckConstraint("experience_points >= 0", name="experience_points_nonnegative"),
         CheckConstraint(
             "length(btrim(display_name)) > 0", name="display_name_nonempty"
         ),
@@ -68,6 +70,8 @@ class User(TimestampMixin, Base):
     )
     weight: Mapped[Decimal] = mapped_column(Numeric(20, 6), server_default="1")
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    scene_verified: Mapped[bool] = mapped_column(Boolean, server_default="false")
+    experience_points: Mapped[int] = mapped_column(Integer, server_default="0")
     city_id: Mapped[int | None] = mapped_column(
         ForeignKey("cities.id", ondelete="SET NULL"), index=True
     )

@@ -42,14 +42,24 @@ function runtime_config(env: Record<string, string>): Plugin {
       server.middlewares.use('/config.json', (_request, response) => {
         response.setHeader('Content-Type', 'application/json');
         response.setHeader('Cache-Control', 'no-store');
-        response.end(JSON.stringify(limits));
+        response.end(
+          JSON.stringify({
+            ...limits,
+            map_tile_url: env.MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          }),
+        );
       });
     },
     configurePreviewServer(server) {
       server.middlewares.use('/config.json', (_request, response) => {
         response.setHeader('Content-Type', 'application/json');
         response.setHeader('Cache-Control', 'no-store');
-        response.end(JSON.stringify(limits));
+        response.end(
+          JSON.stringify({
+            ...limits,
+            map_tile_url: env.MAP_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          }),
+        );
       });
     },
   };

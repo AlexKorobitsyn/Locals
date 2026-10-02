@@ -20,6 +20,24 @@ const STATUS_MESSAGES: Record<number, string> = {
   503: 'Сервис временно недоступен. Попробуйте ещё раз.',
 };
 const DETAIL_MESSAGES: Record<string, string> = {
+  'Pending contribution limit reached; wait for existing proposals to be reviewed':
+    'Вы достигли лимита открытых предложений. Дождитесь принятия или отзовите старые.',
+  'Active event limit reached': 'Достигнут лимит будущих событий вашего уровня.',
+  "This field contains the owner's authoritative version; owner approval required":
+    'У этой записи есть версия владельца. Правку должен одобрить сам владелец.',
+  'Content changed since submission; submit a fresh proposal':
+    'Запись уже изменилась. Отзовите предложение и отправьте новое.',
+  'You already have a pending proposal for this field':
+    'У вас уже есть открытое предложение для этого поля.',
+  'Withdraw the pending proposal and create a corrected one':
+    'Отзовите предложение в разделе сообщества и создайте исправленное.',
+  'All winners for this period have already been selected':
+    'Победители за этот период уже выбраны.',
+  'Weekly award period must be a Monday': 'Для недельной награды выберите понедельник.',
+  'Monthly award period must be the first day': 'Для месячной награды выберите первое число.',
+  'Remove dependent events before withdrawing the venue':
+    'Сначала отзовите события на этой площадке.',
+
   'Browser origin is not allowed':
     'Вход недоступен по этому адресу сайта. Обратитесь к администратору.',
   'File is empty': 'Файл пустой. Выберите другой.',

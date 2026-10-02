@@ -36,6 +36,7 @@ def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSessi
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
     # Границы транзакции и commit задаёт операция сервиса.
     async with request.app.state.session_factory() as session:
+        session.info["settings"] = request.app.state.settings
         yield session
 
 

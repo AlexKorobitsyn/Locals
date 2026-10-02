@@ -33,6 +33,9 @@ export async function invalidate_music() {
         'venues',
         'profile',
         'me',
+        'experience',
+        'admin',
+        'contributions',
       ].includes(String(query.queryKey[0])),
   });
 }

@@ -36,12 +36,19 @@ event_event_types = Table(
 class Event(TimestampMixin, Base):
     __tablename__ = "events"
     __table_args__ = (
+        CheckConstraint(
+            "publication_status IN ('pending','published','rejected')",
+            name="publication_status_valid",
+        ),
         CheckConstraint("length(btrim(name)) > 0", name="name_nonempty"),
         CheckConstraint("stop_at IS NULL OR stop_at > starts_at", name="dates_valid"),
         CheckConstraint("lat BETWEEN -90 AND 90", name="latitude_valid"),
         CheckConstraint("lng BETWEEN -180 AND 180", name="longitude_valid"),
         Index("ix_events_city_starts_at", "city_id", "starts_at"),
         Index("ix_events_coordinates", "lat", "lng"),
+    )
+    publication_status: Mapped[str] = mapped_column(
+        String(64), server_default="published", index=True
     )
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     user_id: Mapped[int | None] = mapped_column(

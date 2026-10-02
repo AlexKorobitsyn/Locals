@@ -1,3 +1,5 @@
+import { ContributionForm } from '../auth/ProgressPage';
+import { can_edit_public } from '../../app/permissions';
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ListPlus, Play } from 'lucide-react';
@@ -96,7 +98,7 @@ export function TrackPage() {
             ))}
           </div>
           <div className="actions">
-            {track.is_owner && (
+            {can_edit_public(track.is_owner, user?.level) && (
               <Link className="button" to={`/studio/tracks/${track.id}`}>
                 Редактировать
               </Link>
@@ -128,6 +130,13 @@ export function TrackPage() {
           <AddToPlaylist track_id={track.id} />
         </div>
       </div>
+      <ContributionForm
+        target_type="track"
+        target_id={track.id}
+        is_owner={track.is_owner}
+        genre_ids={track.genres?.map((genre) => genre.id)}
+        current_lyrics={track.lyrics}
+      />
       <Engagement target_type="track" target_id={track.id} my_rating={track.my_rating || null} />
       {track.lyrics && (
         <section className="panel">
@@ -205,7 +214,7 @@ export function AlbumPage() {
             entity_id={album.id}
             is_liked={album.is_liked_by_me || false}
           />
-          {album.is_owner && (
+          {can_edit_public(album.is_owner, user?.level) && (
             <div className="actions">
               <Link className="button" to={`/studio/albums/${album.id}`}>
                 Редактировать
@@ -222,6 +231,12 @@ export function AlbumPage() {
         kind="tracks"
         filters={{ album_id: album.id }}
         title="Треки альбома"
+      />
+      <ContributionForm
+        target_type="album"
+        target_id={album.id}
+        is_owner={album.is_owner}
+        genre_ids={album.genres?.map((genre) => genre.id)}
       />
       <Engagement target_type="album" target_id={album.id} my_rating={album.my_rating || null} />
     </>
@@ -280,7 +295,7 @@ export function ArtistPage() {
               target_id={artist.id}
               followed={artist.is_followed_by_me || false}
             />
-            {artist.is_owner && (
+            {can_edit_public(artist.is_owner, user?.level) && (
               <>
                 <Link className="button" to={`/studio/artists/${artist.id}`}>
                   Редактировать
@@ -313,6 +328,12 @@ export function ArtistPage() {
         kind="tracks"
         filters={{ artist_id: artist.id }}
         title="Треки"
+      />
+      <ContributionForm
+        target_type="artist"
+        target_id={artist.id}
+        is_owner={artist.is_owner}
+        genre_ids={artist.genres?.map((genre) => genre.id)}
       />
       <Engagement target_type="artist" target_id={artist.id} my_rating={artist.my_rating || null} />
     </>

@@ -1,3 +1,4 @@
+import { can_edit_public } from '../app/permissions';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { api, unwrap } from '../api/client';
 import type { components } from '../api/generated';
@@ -105,7 +106,7 @@ export function EntityPicker({
       {owner_only && value && selected.isPending && (
         <small role="status">Проверяем выбранную запись…</small>
       )}
-      {owner_only && selected.data && !selected.data.is_owner && (
+      {owner_only && selected.data && !can_edit_public(selected.data.is_owner, user?.level) && (
         <p className="field-error" role="alert">
           Выберите своего артиста или релиз. Публиковать от имени другого автора нельзя.
         </p>

@@ -2,14 +2,14 @@ from typing import Literal
 
 from fastapi import HTTPException, status
 from pydantic import AnyHttpUrl
-from sqlalchemy import func, select, true
+from sqlalchemy import delete, func, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased, selectinload
 
 from APP.core.config import Settings
 from APP.core.constants import DEFAULT_ARTIST_ROLE
-from APP.core.dependencies import require_owner
+from APP.core.dependencies import require_owner_or_privileged
 from APP.models.album import Album, album_artists
 from APP.models.artist import Artist
 from APP.models.city import City
@@ -88,7 +88,7 @@ async def related_rows(
         raise not_found(model.__name__)
     if owner is not None:
         for row in rows:
-            require_owner(row.user_id, owner)
+            require_owner_or_privileged(row.user_id, owner)
     return rows
 
 
@@ -105,7 +105,7 @@ async def check_album(session: AsyncSession, album_id: int | None, user: User) -
     )
     if album is None:
         raise not_found("Album")
-    require_owner(album.user_id, user)
+    require_owner_or_privileged(album.user_id, user)
 
 
 def scalar_values(payload, excluded: set[str]) -> dict:
@@ -291,6 +291,9 @@ async def create_artist(
         artist = Artist(
             **scalar_values(payload, {"genre_ids"}), user_id=user.id, genres=genres
         )
+        artist.owner_fields = (
+            ["metadata", "genres"] if payload.genre_ids else ["metadata"]
+        )
         session.add(artist)
         await session.flush()
         record_catalog_event(session, user, "artist", artist.id, "artist_created")
@@ -309,6 +312,9 @@ async def create_album(
             user_id=user.id,
             artists=artists,
             genres=genres,
+        )
+        album.owner_fields = (
+            ["metadata", "genres"] if payload.genre_ids else ["metadata"]
         )
         session.add(album)
         await session.flush()
@@ -353,6 +359,11 @@ async def create_track(
             artist_credits=credits,
             genres=genres,
         )
+        track.owner_fields = (
+            ["metadata", "genres"] if payload.genre_ids else ["metadata"]
+        )
+        if payload.lyrics:
+            track.owner_fields.append("lyrics")
         session.add(track)
         await session.flush()
         record_catalog_event(session, user, "track", track.id, "track_created")
@@ -378,8 +389,17 @@ async def update_catalog(
         )
         if entity is None:
             raise not_found(model.__name__)
-        require_owner(entity.user_id, user)
+        require_owner_or_privileged(entity.user_id, user)
         fields = payload.model_fields_set
+        if entity.user_id == user.id:
+            protected = set(entity.owner_fields)
+            if "genre_ids" in fields:
+                protected.add("genres")
+            if "lyrics" in fields:
+                protected.add("lyrics")
+            if "title" in fields or "name" in fields:
+                protected.add("metadata")
+            entity.owner_fields = sorted(protected)
         if "city_id" in fields:
             await check_city(session, payload.city_id)
         if "album_id" in fields:
@@ -441,3 +461,44 @@ async def create_genre(
                 status_code=status.HTTP_409_CONFLICT, detail="Genre slug already exists"
             ) from None
         raise
+
+
+async def delete_catalog(session, kind, entity_id, actor):
+    model = MODELS[kind]
+    async with session.begin():
+        entity = await session.scalar(
+            select(model).where(model.id == entity_id).with_for_update()
+        )
+        if entity is None:
+            raise not_found(model.__name__)
+        if kind == "artist":
+            credits = await session.scalar(
+                select(func.count())
+                .select_from(TrackArtist)
+                .where(TrackArtist.artist_id == entity_id)
+            )
+            albums = await session.scalar(
+                select(func.count())
+                .select_from(album_artists)
+                .where(album_artists.c.artist_id == entity_id)
+            )
+            if credits or albums:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Remove the artist from tracks and albums first",
+                )
+        if kind == "track":
+            from APP.models.playlist_track import PlaylistTrack
+
+            used = await session.scalar(
+                select(func.count())
+                .select_from(PlaylistTrack)
+                .where(PlaylistTrack.track_id == entity_id)
+            )
+            if used:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Remove this track from custom playlists first",
+                )
+        record_catalog_event(session, actor, kind, entity_id, kind + "_deleted")
+        await session.execute(delete(model).where(model.id == entity_id))

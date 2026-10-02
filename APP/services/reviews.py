@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from APP.core.dependencies import require_owner
+from APP.core.dependencies import require_owner_or_privileged
 from APP.models.rating import Rating
 from APP.models.review import Review
 from APP.models.user import User
@@ -85,7 +85,7 @@ async def create_review(
     session: AsyncSession, payload: ReviewCreate, user: User
 ) -> ReviewOut:
     async with session.begin():
-        await lock_user(session, user.id)
+        current_user = await lock_user(session, user.id)
         await lock_target(session, payload.target_type, payload.target_id)
         rating = await session.scalar(
             select(Rating).where(
@@ -109,6 +109,9 @@ async def create_review(
         review = Review(rating_id=rating.id, title=payload.title, text=payload.text)
         session.add(review)
         await session.flush()
+        from APP.services.gamification import review_award
+
+        await review_award(session, current_user, rating, review.text)
         record_event(session, user.id, "review_created", "review", review.id)
         output = await get_review(session, review.id, user)
     return output
@@ -121,7 +124,7 @@ async def change_review(
     payload: ReviewUpdate | None = None,
 ):
     async with session.begin():
-        await lock_user(session, user.id)
+        current_user = await lock_user(session, user.id)
         row = (
             await session.execute(
                 select(Review, Rating).join(Rating).where(Review.id == review_id)
@@ -129,7 +132,7 @@ async def change_review(
         ).one_or_none()
         if row is None:
             raise HTTPException(status_code=404, detail="Review not found")
-        require_owner(row.Rating.user_id, user)
+        require_owner_or_privileged(row.Rating.user_id, user)
         await lock_target(session, row.Rating.target_type, row.Rating.target_id)
         review = await session.scalar(
             select(Review)
@@ -146,6 +149,10 @@ async def change_review(
         else:
             for key, value in payload.model_dump(exclude_unset=True).items():
                 setattr(review, key, value)
+            from APP.services.gamification import review_award
+
+            if row.Rating.user_id == user.id:
+                await review_award(session, current_user, row.Rating, review.text)
             await session.flush()
             record_event(session, user.id, "review_updated", "review", review.id)
             output = await get_review(session, review.id, user)

@@ -17,6 +17,7 @@ type AuthContextValue = {
   is_loading: boolean;
   error: unknown;
   logout: () => Promise<void>;
+  experience: components['schemas']['ExperienceOut'] | null;
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -42,6 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: !!tokens,
     retry: false,
     queryFn: async ({ signal }) => unwrap(await api.GET('/api/v1/me', { signal })),
+    refetchOnWindowFocus: true,
+  });
+  const experience_query = useQuery({
+    queryKey: ['experience', tokens?.session_id],
+    enabled: !!tokens,
+    retry: false,
+    refetchOnWindowFocus: true,
+    queryFn: async ({ signal }) => unwrap(await api.GET('/api/v1/me/experience', { signal })),
   });
   useEffect(() => {
     let previous_session = get_tokens()?.session_id;
@@ -63,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         is_loading: restoring || (!!tokens && me_query.isPending),
         error: tokens ? me_query.error : restore_error,
         logout,
+        experience: tokens ? experience_query.data || null : null,
       }}
     >
       {children}

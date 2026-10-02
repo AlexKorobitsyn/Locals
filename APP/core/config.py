@@ -9,6 +9,20 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ArgumentError
 
 from APP.core.constants import (
+    DEFAULT_CONTRIBUTION_LIMITS,
+    DEFAULT_CONTRIBUTION_VOTES,
+    DEFAULT_EVENT_LIMIT,
+    DEFAULT_EXPERIENCE_GENRES_POINTS,
+    DEFAULT_EXPERIENCE_HIGHER_THRESHOLDS,
+    DEFAULT_EXPERIENCE_LYRICS_POINTS,
+    DEFAULT_EXPERIENCE_SCENE_POINTS,
+    DEFAULT_LEGEND_EVENT_LIMIT,
+    DEFAULT_LISTEN_DAILY_CAP,
+    DEFAULT_MICRO_DAILY_CAP,
+    DEFAULT_MILESTONE_POINTS,
+    DEFAULT_QUALITY_MIN_RATERS,
+    DEFAULT_QUALITY_MIN_RATING,
+    DEFAULT_QUALITY_TRACK_POINTS,
     DEFAULT_RATING_PRIOR_MEAN,
     DEFAULT_RATING_PRIOR_STRENGTH,
     DEFAULT_RATING_WEIGHT_GREEN,
@@ -16,9 +30,13 @@ from APP.core.constants import (
     DEFAULT_RECOMMENDATION_FAVORITE_WEIGHT,
     DEFAULT_RECOMMENDATION_QUALITY_WEIGHT,
     DEFAULT_RECOMMENDATION_RATED_WEIGHT,
+    DEFAULT_REVIEW_DAILY_CAP,
+    DEFAULT_REVIEW_POINTS,
     JWT_SECRET_MIN_LENGTH,
     MAX_BCRYPT_ROUNDS,
+    MAX_RATING,
     MIN_BCRYPT_ROUNDS,
+    MIN_RATING,
 )
 
 MAX_PORT = 65535
@@ -52,6 +70,59 @@ class Settings(BaseSettings):
     browser_allowed_origins: list[AnyHttpUrl] = Field(default_factory=list)
     browser_cookie_secure: bool = True
     bcrypt_rounds: int = Field(default=12, ge=MIN_BCRYPT_ROUNDS, le=MAX_BCRYPT_ROUNDS)
+    experience_lyrics_points: int = Field(
+        default=DEFAULT_EXPERIENCE_LYRICS_POINTS, gt=0
+    )
+    experience_genres_points: int = Field(
+        default=DEFAULT_EXPERIENCE_GENRES_POINTS, gt=0
+    )
+    experience_scene_points: int = Field(default=DEFAULT_EXPERIENCE_SCENE_POINTS, gt=0)
+    listen_daily_cap: int = Field(default=DEFAULT_LISTEN_DAILY_CAP, gt=0)
+    quality_track_points: int = Field(default=DEFAULT_QUALITY_TRACK_POINTS, gt=0)
+    quality_min_raters: int = Field(default=DEFAULT_QUALITY_MIN_RATERS, ge=2)
+    quality_min_rating: Decimal = Field(
+        default=Decimal(DEFAULT_QUALITY_MIN_RATING), ge=MIN_RATING, le=MAX_RATING
+    )
+
+    experience_higher_thresholds: list[int] = Field(
+        default_factory=lambda: list(DEFAULT_EXPERIENCE_HIGHER_THRESHOLDS),
+        min_length=5,
+        max_length=5,
+    )
+    contribution_limits: list[int] = Field(
+        default_factory=lambda: list(DEFAULT_CONTRIBUTION_LIMITS),
+        min_length=9,
+        max_length=9,
+    )
+    contribution_votes_required: int = Field(default=DEFAULT_CONTRIBUTION_VOTES, ge=2)
+    event_active_limit: int = Field(default=DEFAULT_EVENT_LIMIT, gt=0)
+    event_legend_limit: int = Field(default=DEFAULT_LEGEND_EVENT_LIMIT, gt=0)
+    micro_daily_cap: int = Field(default=DEFAULT_MICRO_DAILY_CAP, gt=0)
+    review_daily_cap: int = Field(default=DEFAULT_REVIEW_DAILY_CAP, gt=0)
+    review_points: int = Field(default=DEFAULT_REVIEW_POINTS, gt=0)
+    milestone_points: int = Field(default=DEFAULT_MILESTONE_POINTS, gt=0)
+
+    @model_validator(mode="after")
+    def validate_experience_thresholds(self):
+        values = [
+            self.experience_lyrics_points,
+            self.experience_genres_points,
+            self.experience_scene_points,
+            *self.experience_higher_thresholds,
+        ]
+        if any(a >= b for a, b in zip(values, values[1:])):
+            raise ValueError("Experience thresholds must be strictly increasing")
+        if any(value <= 0 for value in self.contribution_limits) or any(
+            a > b
+            for a, b in zip(self.contribution_limits, self.contribution_limits[1:])
+        ):
+            raise ValueError("Contribution limits must be positive and nondecreasing")
+        if self.event_legend_limit < self.event_active_limit:
+            raise ValueError(
+                "Legend event limit cannot be lower than the regular limit"
+            )
+        return self
+
     s3_endpoint_url: AnyHttpUrl | None = None
     s3_public_endpoint_url: AnyHttpUrl | None = None
     s3_access_key: SecretStr | None = None

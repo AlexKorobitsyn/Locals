@@ -7,7 +7,7 @@ server {
     location = /config.json {
         default_type application/json;
         add_header Cache-Control "no-store" always;
-        return 200 '{"image_max_bytes":${IMAGE_MAX_BYTES},"audio_max_bytes":${AUDIO_MAX_BYTES}}';
+        return 200 '{"image_max_bytes":${IMAGE_MAX_BYTES},"audio_max_bytes":${AUDIO_MAX_BYTES},"map_tile_url":"${MAP_TILE_URL}"}';
     }
 
     location /api/ {

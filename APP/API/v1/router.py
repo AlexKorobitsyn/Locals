@@ -1,12 +1,15 @@
 from fastapi import APIRouter
 
 from APP.API.health import router as health_router
+from APP.API.v1.admin import router as admin_router
 from APP.API.v1.album import router as album_router
 from APP.API.v1.artist import router as artist_router
 from APP.API.v1.auth import router as auth_router
 from APP.API.v1.city import router as city_router
+from APP.API.v1.contribution import router as contribution_router
 from APP.API.v1.event_log import router as event_log_router
 from APP.API.v1.events import router as events_router
+from APP.API.v1.experience import router as experience_router
 from APP.API.v1.favorite import router as favorite_router
 from APP.API.v1.follow import router as follow_router
 from APP.API.v1.genre import router as genre_router
@@ -22,6 +25,9 @@ from APP.API.v1.venue import router as venue_router
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(health_router)
+router.include_router(admin_router)
+router.include_router(experience_router)
+router.include_router(contribution_router)
 router.include_router(auth_router)
 router.include_router(user_router)
 router.include_router(studio_router)

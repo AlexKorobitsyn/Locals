@@ -1,3 +1,6 @@
+import { ContributionPage } from './features/auth/ContributionPage';
+import { AdminPage } from './features/admin/AdminPage';
+import { ProgressPage } from './features/auth/ProgressPage';
 import { StrictMode } from 'react';
 import { createRoot as create_root } from 'react-dom/client';
 import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router';
@@ -17,6 +20,7 @@ import { StudioPage } from './features/studio/StudioPage';
 import { CatalogEditorPage } from './features/studio/CatalogEditorPage';
 import { ScenePage, EventPage, VenuePage } from './features/events/EventPages';
 import { SceneEditorPage } from './features/events/SceneEditorPage';
+import { MapPage } from './features/events/MapPage';
 import { SocialPage } from './features/social/SocialPage';
 import { ProfilePage } from './features/social/ProfilePage';
 import './styles.css';
@@ -52,6 +56,9 @@ create_root(document.getElementById('root')!).render(
                 <Route path="artists/:id" element={<ArtistPage />} />
                 <Route path="login" element={<AuthPage key="login" />} />
                 <Route path="register" element={<AuthPage key="register" register />} />
+                <Route path="admin" element={<AdminPage />} />
+                <Route path="progress" element={<ProgressPage />} />
+                <Route path="contributions" element={<ContributionPage />} />
                 <Route path="preferences" element={<PreferencesPage />} />
                 <Route path="library" element={<LibraryPage />} />
                 <Route path="playlists/:id" element={<PlaylistPage />} />
@@ -63,6 +70,7 @@ create_root(document.getElementById('root')!).render(
                 <Route path="studio/tracks/new" element={<CatalogEditorPage kind="tracks" />} />
                 <Route path="studio/tracks/:id" element={<CatalogEditorPage kind="tracks" />} />
                 <Route path="events" element={<ScenePage />} />
+                <Route path="map" element={<MapPage />} />
                 <Route path="events/new" element={<SceneEditorPage />} />
                 <Route path="events/:id" element={<EventPage />} />
                 <Route path="events/:id/edit" element={<SceneEditorPage />} />

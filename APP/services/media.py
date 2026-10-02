@@ -17,7 +17,7 @@ from sqlalchemy import exists, or_, select
 from starlette.concurrency import run_in_threadpool
 
 from APP.core.constants import NAME_MAX_LENGTH, UPLOAD_CHUNK_BYTES
-from APP.core.dependencies import require_owner
+from APP.core.dependencies import require_owner_or_admin, require_owner_or_privileged
 from APP.models.album import Album
 from APP.models.artist import Artist
 from APP.models.media import Media
@@ -209,7 +209,12 @@ async def attach_media(session, user, media_id, kind, target_id, audio=False):
         )
         if target is None:
             raise HTTPException(status_code=404, detail="Target not found")
-        require_owner(target.id if model is User else target.user_id, user)
+        if model is Playlist and target.visibility == "private":
+            require_owner_or_admin(target.id if model is User else target.user_id, user)
+        else:
+            require_owner_or_privileged(
+                target.id if model is User else target.user_id, user
+            )
         if model is Playlist and target.kind == "liked":
             raise HTTPException(
                 status_code=409, detail="System playlist cannot be edited"

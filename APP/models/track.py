@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, ForeignKey, Identity, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from APP.core.constants import NAME_MAX_LENGTH
@@ -23,6 +24,7 @@ class Track(RatedMixin, TimestampMixin, Base):
         CheckConstraint("duration > 0", name="duration_positive"),
     )
 
+    owner_fields: Mapped[list[str]] = mapped_column(JSONB, server_default="[]")
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     title: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH), index=True)
     duration: Mapped[int] = mapped_column(Integer)

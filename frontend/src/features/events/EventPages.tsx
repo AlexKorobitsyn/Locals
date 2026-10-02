@@ -1,3 +1,4 @@
+import { can_edit_public, can_create_scene } from '../../app/permissions';
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -16,9 +17,11 @@ import { RatingBadge, RatingControl } from '../ratings/RatingControl';
 import { Reviews } from '../reviews/Reviews';
 import { FollowButton } from '../social/FollowButton';
 import { ImageUpload } from '../studio/ImageUpload';
+import { SceneMap } from './SceneMap';
+import { MAP_PLACE_ZOOM } from './map_constants';
 
 export function can_edit(is_owner: boolean | undefined, level?: string) {
-  return !!is_owner || ['experienced', 'moderator', 'admin'].includes(level || '');
+  return can_edit_public(is_owner, level);
 }
 export function use_event_types() {
   return useQuery({
@@ -35,7 +38,7 @@ function valid_date(value: string | null) {
 }
 
 export function ScenePage({ venues = false }: { venues?: boolean }) {
-  const { user } = use_auth();
+  const { user, experience } = use_auth();
   const [search, set_search] = useSearchParams();
   const city_id = parse_id(search.get('city_id') || undefined);
   const offset = Math.max(0, Number(search.get('offset')) || 0);
@@ -72,6 +75,7 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
                   ...common,
                   starts_after,
                   starts_before,
+                  venue_id: parse_id(search.get('venue_id') || undefined) || undefined,
                   type_event_id: parse_id(search.get('type_event_id') || undefined) || undefined,
                 },
               },
@@ -95,9 +99,23 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
               : 'Концерты, сеты и встречи. Найдите свой вечер.'}
           </p>
         </div>
-        <Link className="button primary" to={`/${venues ? 'venues' : 'events'}/new`}>
-          {venues ? 'Добавить площадку' : 'Добавить событие'}
+        {can_create_scene(user?.level, experience) && (
+          <Link className="button primary" to={`/${venues ? 'venues' : 'events'}/new`}>
+            {venues ? 'Добавить площадку' : 'Добавить событие'}
+          </Link>
+        )}
+      </div>
+      <div className="actions scene-view-switch">
+        <Link
+          className="button"
+          to={`/map?${new URLSearchParams({ ...Object.fromEntries(search), layer: venues ? 'venues' : 'events' })}`}
+        >
+          <MapPin size={18} />
+          {venues ? 'Карта площадок' : 'Карта событий'}
         </Link>
+        {!venues && search.get('venue_id') && (
+          <span className="muted">Показана афиша выбранной площадки.</span>
+        )}
       </div>
       <div className="panel form scene-filters">
         <CityPicker
@@ -260,6 +278,19 @@ export function EventPage() {
       navigate('/events');
     },
   });
+  const attendance = useMutation({
+    mutationFn: async () =>
+      unwrap(
+        await (query.data?.is_going_by_me
+          ? api.DELETE('/api/v1/events/{event_id}/attendance', {
+              params: { path: { event_id: id! } },
+            })
+          : api.PUT('/api/v1/events/{event_id}/attendance', {
+              params: { path: { event_id: id! } },
+            })),
+      ),
+    onSuccess: invalidate_music,
+  });
   if (!id) return <ErrorState error={new ApiError(404, 'Такого события нет.')} />;
   if (query.isPending) return <LoadingState />;
   if (query.isError) return <ErrorState error={query.error} retry={() => void query.refetch()} />;
@@ -272,6 +303,32 @@ export function EventPage() {
       <section className="panel event-hero">
         <span className="eyebrow">{event.city?.name || 'ЖИВАЯ СЦЕНА'}</span>
         <h1>{event.name}</h1>
+        {event.publication_status !== 'published' && (
+          <p role="status">
+            Предложение{' '}
+            {event.publication_status === 'rejected' ? 'отклонено' : 'ожидает принятия сообществом'}
+            . <Link to="/contributions">Открыть предложения</Link>
+          </p>
+        )}
+        {event.publication_status === 'published' && (
+          <>
+            <p>{event.attendees_count} участников</p>
+            {user ? (
+              <button
+                className="button primary"
+                disabled={attendance.isPending}
+                onClick={() => attendance.mutate()}
+              >
+                {event.is_going_by_me ? 'Я не иду' : 'Я иду'}
+              </button>
+            ) : (
+              <Link className="button" to="/login">
+                Войти и отметить «Я иду»
+              </Link>
+            )}
+            {attendance.isError && <ErrorState error={attendance.error} />}
+          </>
+        )}
         <p className="event-date">
           <CalendarDays size={22} />
           <time dateTime={event.starts_at}>{format_datetime(event.starts_at)}</time>
@@ -296,16 +353,20 @@ export function EventPage() {
           ))}
         </div>
         <div className="actions">
-          <FavoriteButton
-            entity_type="event"
-            entity_id={id}
-            is_liked={event.is_liked_by_me || false}
-          />
+          {event.publication_status === 'published' && (
+            <FavoriteButton
+              entity_type="event"
+              entity_id={id}
+              is_liked={event.is_liked_by_me || false}
+            />
+          )}
           {user && can_edit(event.is_owner, user.level) && (
             <>
-              <Link className="button" to={`/events/${id}/edit`}>
-                Редактировать
-              </Link>
+              {event.publication_status === 'published' && (
+                <Link className="button" to={`/events/${id}/edit`}>
+                  Редактировать
+                </Link>
+              )}
               <button className="text-button" onClick={() => set_confirm_delete(true)}>
                 Удалить событие
               </button>
@@ -333,6 +394,31 @@ export function EventPage() {
         )}
         {deletion.isError && <ErrorState error={deletion.error} />}
       </section>
+      {event.lat != null && event.lng != null && (
+        <section className="panel">
+          <h2>Где проходит</h2>
+          <SceneMap
+            compact
+            focus={{ lat: event.lat, lng: event.lng }}
+            focus_zoom={MAP_PLACE_ZOOM}
+            markers={[
+              {
+                key: `event:${event.id}`,
+                title: event.venue?.name || event.name,
+                lat: event.lat,
+                lng: event.lng,
+                kind: event.venue ? 'active_venue' : 'event',
+              },
+            ]}
+          />
+          <Link
+            className="text-button"
+            to={`/map?city_id=${event.city?.id || ''}&lat=${event.lat}&lng=${event.lng}&${event.venue ? `venue_id=${event.venue.id}` : `event_id=${event.id}`}`}
+          >
+            Открыть карту событий →
+          </Link>
+        </section>
+      )}
       {event.description && (
         <section className="panel">
           <h2>О событии</h2>
@@ -350,7 +436,7 @@ export function EventPage() {
 
 export function VenuePage() {
   const id = parse_id(useParams().id);
-  const { user } = use_auth();
+  const { user, experience } = use_auth();
   const query = useQuery({
     queryKey: ['venues', user?.id, id],
     enabled: !!id,
@@ -373,6 +459,15 @@ export function VenuePage() {
         <div>
           <span className="eyebrow">ПЛОЩАДКА · {venue.city.name}</span>
           <h1>{venue.name}</h1>
+          {venue.publication_status !== 'published' && (
+            <p role="status">
+              Предложение{' '}
+              {venue.publication_status === 'rejected'
+                ? 'отклонено'
+                : 'ожидает принятия сообществом'}
+              . <Link to="/contributions">Открыть предложения</Link>
+            </p>
+          )}
           {venue.address && <p>{venue.address}</p>}
           <p className="muted">
             {venue.events_count || 0} событий · {venue.followers_count || 0} подписчиков
@@ -384,24 +479,53 @@ export function VenuePage() {
             my_rating={venue.my_rating}
           />
           <div className="actions">
-            <FollowButton
-              target_type="venue"
-              target_id={id}
-              followed={venue.is_followed_by_me || false}
-            />
-            <FavoriteButton
-              entity_type="venue"
-              entity_id={id}
-              is_liked={venue.is_liked_by_me || false}
-            />
-            {user && can_edit(venue.is_owner, user.level) && (
-              <Link className="button" to={`/venues/${id}/edit`}>
-                Редактировать
-              </Link>
+            {venue.publication_status === 'published' && (
+              <>
+                <FollowButton
+                  target_type="venue"
+                  target_id={id}
+                  followed={venue.is_followed_by_me || false}
+                />
+                <FavoriteButton
+                  entity_type="venue"
+                  entity_id={id}
+                  is_liked={venue.is_liked_by_me || false}
+                />
+              </>
             )}
+            {user &&
+              venue.publication_status === 'published' &&
+              can_edit(venue.is_owner, user.level) && (
+                <Link className="button" to={`/venues/${id}/edit`}>
+                  Редактировать
+                </Link>
+              )}
           </div>
         </div>
       </div>
+      <section className="panel">
+        <h2>На карте</h2>
+        <SceneMap
+          compact
+          focus={venue}
+          focus_zoom={MAP_PLACE_ZOOM}
+          markers={[
+            {
+              key: `venue:${venue.id}`,
+              title: venue.name,
+              lat: venue.lat,
+              lng: venue.lng,
+              kind: 'venue',
+            },
+          ]}
+        />
+        <Link
+          className="text-button"
+          to={`/map?city_id=${venue.city.id}&lat=${venue.lat}&lng=${venue.lng}&venue_id=${venue.id}`}
+        >
+          Открыть карту площадок →
+        </Link>
+      </section>
       {venue.description && (
         <section className="panel">
           <h2>О месте</h2>
@@ -409,31 +533,42 @@ export function VenuePage() {
         </section>
       )}
       <div className="actions">
+        <Link className="button" to={`/events?venue_id=${id}`}>
+          Афиша площадки
+        </Link>
         <Link className="button" to={`/events?city_id=${venue.city.id}`}>
           Афиша города
         </Link>
-        <Link className="button" to={`/events/new?venue_id=${id}`}>
-          Добавить событие здесь
-        </Link>
+        {can_create_scene(user?.level, experience) && (
+          <Link className="button" to={`/events/new?venue_id=${id}`}>
+            Добавить событие здесь
+          </Link>
+        )}
         {venue.website && /^https?:\/\//i.test(venue.website) && (
           <a className="button" href={venue.website} target="_blank" rel="noopener noreferrer">
             Сайт площадки ↗
           </a>
         )}
       </div>
-      <RatingControl
-        key={`${user?.id}:${venue.my_rating}`}
-        target_type="venue"
-        target_id={id}
-        my_rating={venue.my_rating || null}
-      />
-      <Reviews
-        key={`${user?.id}:${id}`}
-        target_type="venue"
-        target_id={id}
-        my_rating={venue.my_rating || null}
-      />
-      {venue.is_owner && <ImageUpload key={id} target_type="venue" target_id={id} />}
+      {venue.publication_status === 'published' && (
+        <>
+          <RatingControl
+            key={`${user?.id}:${venue.my_rating}`}
+            target_type="venue"
+            target_id={id}
+            my_rating={venue.my_rating || null}
+          />
+          <Reviews
+            key={`${user?.id}:${id}`}
+            target_type="venue"
+            target_id={id}
+            my_rating={venue.my_rating || null}
+          />
+        </>
+      )}
+      {can_edit_public(venue.is_owner, user?.level) && (
+        <ImageUpload key={id} target_type="venue" target_id={id} />
+      )}
       {venue.user_id && (
         <Link className="text-button" to={`/users/${venue.user_id}`}>
           Профиль владельца →

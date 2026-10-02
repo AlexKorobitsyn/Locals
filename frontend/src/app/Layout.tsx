@@ -1,3 +1,4 @@
+import { can_moderate } from './permissions';
 import { Component, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import {
@@ -30,8 +31,10 @@ const NAV_ITEMS = [
   { to: '/library', label: 'Библиотека', icon: Library },
   { to: '/preferences', label: 'Мой вкус', icon: SlidersHorizontal },
   { to: '/events', label: 'События', icon: CalendarDays },
+  { to: '/map', label: 'Карта', icon: MapPin },
   { to: '/venues', label: 'Площадки', icon: MapPin },
   { to: '/feed', label: 'Лента', icon: Radio },
+  { to: '/contributions', label: 'Предложения', icon: Users },
   { to: '/studio', label: 'Студия', icon: Upload },
 ];
 const mobile_query = window.matchMedia('(max-width: 850px)');
@@ -109,6 +112,12 @@ export function Layout() {
               {label}
             </NavLink>
           ))}
+          {user && <NavLink to="/progress">Мой опыт</NavLink>}
+          {can_moderate(user?.level) && (
+            <NavLink to="/admin">
+              {user?.level === 'admin' ? 'Администрирование' : 'Модерация'}
+            </NavLink>
+          )}
         </nav>
         <div className="sidebar-footer">
           <Headphones size={25} />

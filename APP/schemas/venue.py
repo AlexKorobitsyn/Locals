@@ -15,10 +15,13 @@ from APP.schemas.common import (
 
 
 class VenueShort(BaseSchema):
+    publication_status: str = "published"
     id: int
     name: str
     cover_url: str | None = None
     city: CityShort
+    lat: Latitude
+    lng: Longitude
 
 
 class VenueRatedShort(VenueShort, RatingFields):
@@ -28,8 +31,6 @@ class VenueRatedShort(VenueShort, RatingFields):
 class VenueOut(VenueRatedShort):
     description: str | None = None
     address: str | None = None
-    lat: Latitude
-    lng: Longitude
     capacity: NonNegativeInt | None = None
     website: str | None = None
     events_count: NonNegativeInt = 0

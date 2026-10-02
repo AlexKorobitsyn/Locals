@@ -325,6 +325,25 @@ test('venue, event filters and editing; following exposes venue activity in the 
   request,
 }) => {
   const credentials = await register(page, 'Scene Author');
+  const initial_headers = await bearer(request, credentials);
+  const own_user = await (await request.get('/api/v1/me', { headers: initial_headers })).json();
+  const administrator = await bearer(request, {
+    email: process.env.E2E_ADMIN_EMAIL!,
+    password: process.env.E2E_ADMIN_PASSWORD!,
+  });
+  expect(
+    (
+      await request.put(`/api/v1/admin/users/${own_user.id}/experience`, {
+        headers: administrator,
+        data: { tier: 3 },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.goto('/login?next=/preferences');
+  await page.getByLabel('Email', { exact: true }).fill(credentials.email);
+  await page.getByLabel('Пароль', { exact: true }).fill(credentials.password);
+  await page.getByRole('button', { name: 'Войти', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Что вы слушаете?' })).toBeVisible();
   const headers = await bearer(request, credentials);
   const city_response = await request.get('/api/v1/cities?q=Frontend%20City');
   const city = (await city_response.json()).items[0];

@@ -54,7 +54,9 @@ def test_engine_disposed_and_sessions_closed(settings, monkeypatch):
     @asynccontextmanager
     async def session_factory():
         try:
-            yield object()
+            from types import SimpleNamespace
+
+            yield SimpleNamespace(info={})
         finally:
             closed.append(True)
 

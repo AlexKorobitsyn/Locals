@@ -295,7 +295,9 @@ def test_permissions_use_current_database_level(client, catalog_db):
     )
     for level in ("experienced", "moderator", "admin"):
         catalog_db.execute("UPDATE users SET level=:level", {"level": level})
-        assert client.get("/api/v1/test-privileged", headers=headers).status_code == 200
+        assert client.get("/api/v1/test-privileged", headers=headers).status_code == (
+            403 if level == "experienced" else 200
+        )
         expected = 200 if level == "admin" else 403
         assert client.get("/api/v1/test-admin", headers=headers).status_code == expected
     catalog_db.execute("UPDATE users SET level='green'")

@@ -5,7 +5,10 @@ from fastapi import APIRouter, Query, Response
 from APP.core.config import SettingsDependency
 from APP.core.constants import DEFAULT_PAGE_LIMIT
 from APP.core.db import SessionDependency
-from APP.core.dependencies import CurrentUserDependency, OptionalUserDependency
+from APP.core.dependencies import (
+    CurrentUserDependency,
+    OptionalUserDependency,
+)
 from APP.schemas.pagination import EntityId, Page, PageLimit, PageOffset
 from APP.schemas.venue import VenueCreate, VenueOut, VenueRatedShort, VenueUpdate
 from APP.services.places import change_venue, venue_detail, venues_page

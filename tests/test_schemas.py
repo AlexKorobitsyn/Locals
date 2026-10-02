@@ -53,7 +53,13 @@ def test_nullable_fields_and_orm_serialization():
         id=1,
         name="Jam",
         starts_at=NOW,
-        venue={"id": 1, "name": "Club", "city": {"id": 1, "name": "City"}},
+        venue={
+            "id": 1,
+            "name": "Club",
+            "city": {"id": 1, "name": "City"},
+            "lat": 56,
+            "lng": 60,
+        },
         stop_at=None,
     )
     assert event.model_dump(mode="json")["stop_at"] is None

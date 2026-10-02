@@ -32,7 +32,10 @@ def venue(client, headers, city_id):
 def test_venue_rating_and_event_location_permissions(
     api_client, music, account, city, catalog_db
 ):
-    _, headers, _, _, _ = music
+    owner, headers, _, _, _ = music
+    catalog_db.execute(
+        "UPDATE users SET scene_verified=true WHERE id=:id", {"id": owner["id"]}
+    )
     _, other = account("other")
     place = venue(api_client, headers, city)
     assert place["is_owner"]
@@ -134,8 +137,13 @@ def test_venue_rating_and_event_location_permissions(
     )
 
 
-def test_event_city_defaults_types_and_validation(api_client, account, city):
-    _, headers = account()
+def test_event_city_defaults_types_and_validation(
+    api_client, account, city, catalog_db
+):
+    owner, headers = account()
+    catalog_db.execute(
+        "UPDATE users SET scene_verified=true WHERE id=:id", {"id": owner["id"]}
+    )
     event = result(
         api_client.post(
             "/api/v1/events",
@@ -191,7 +199,7 @@ def test_city_creation_privileged_search_timezone(api_client, account, catalog_d
         == 403
     )
     catalog_db.execute(
-        "UPDATE users SET level='experienced' WHERE id=:id", {"id": user["id"]}
+        "UPDATE users SET level='moderator' WHERE id=:id", {"id": user["id"]}
     )
     result(api_client.post("/api/v1/cities", headers=headers, json=payload), 201)
     assert result(api_client.get("/api/v1/cities", params={"q": "100%"}))["total"] == 1

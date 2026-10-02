@@ -1,7 +1,10 @@
+import logging
 from decimal import Decimal
+from types import SimpleNamespace
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_, case, literal, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from APP.core.config import Settings
@@ -71,7 +74,9 @@ async def lock_target(session: AsyncSession, kind: RatingTarget, target_id: int)
         .where(TARGET_MODELS[kind].id == target_id)
         .with_for_update()
     )
-    if target is None:
+    if target is None or (
+        kind == RatingTarget.venue and target.publication_status != "published"
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Rating target not found"
         )
@@ -145,6 +150,12 @@ async def put_rating(
             rating.value, rating.weight = value, weight
         target.rating_sum += value * weight - old_sum
         target.rating_weight += weight - old_weight
+        from APP.services.gamification import micro_award
+
+        if target.user_id != current_user.id:
+            await micro_award(
+                session, current_user, "rating", payload.target_type, payload.target_id
+            )
         await session.flush()
         record_rating_event(
             session,
@@ -155,6 +166,17 @@ async def put_rating(
             value,
         )
         result = rating_result(target, payload.target_type, value, settings)
+    if payload.target_type == RatingTarget.track and target.user_id is not None:
+        from APP.services.experience import claim_quality
+
+        try:
+            await claim_quality(
+                session, SimpleNamespace(id=target.user_id), settings, target.id
+            )
+        except (SQLAlchemyError, HTTPException):
+            logging.getLogger(__name__).warning(
+                "Experience reward deferred; retry through claim endpoint"
+            )
     return result
 
 

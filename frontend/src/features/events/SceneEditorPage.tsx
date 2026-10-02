@@ -1,3 +1,4 @@
+import { can_create_scene, can_moderate } from '../../app/permissions';
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
@@ -23,13 +24,15 @@ import { EntityPicker } from '../../components/EntityPicker';
 import { ErrorState, LoadingState } from '../../components/States';
 import { use_auth } from '../auth/AuthProvider';
 import { can_edit, use_event_types } from './EventPages';
+import { LocationPicker } from './LocationPicker';
+import { MAP_COORDINATE_PRECISION } from './map_constants';
 
 type Venue = components['schemas']['VenueOut'];
 type Event = components['schemas']['EventOut'];
 type EventType = components['schemas']['EventType'];
 
 function EditorLoader({ venues }: { venues: boolean }) {
-  const { user } = use_auth();
+  const { user, experience } = use_auth();
   const parameter = useParams().id;
   const id = parse_id(parameter);
   const [search] = useSearchParams();
@@ -58,6 +61,10 @@ function EditorLoader({ venues }: { venues: boolean }) {
     return <ErrorState error={query.error} retry={() => void query.refetch()} />;
   if (!venues && types.isError)
     return <ErrorState error={types.error} retry={() => void types.refetch()} />;
+  if (!id && !can_create_scene(user?.level, experience))
+    return (
+      <ErrorState error={new ApiError(403, 'Войдите, чтобы предложить площадку или событие.')} />
+    );
   if (query.data && !can_edit(query.data.is_owner, user?.level))
     return (
       <ErrorState
@@ -86,6 +93,8 @@ function SceneEditor({
   types: EventType[];
   initial_venue_id: number | null;
 }) {
+  const { user } = use_auth();
+  const direct_publish = user?.scene_verified || can_moderate(user?.level);
   const navigate = useNavigate();
   const [name, set_name] = useState(initial?.name || '');
   const [description, set_description] = useState(initial?.description || '');
@@ -151,7 +160,7 @@ function SceneEditor({
         ...common,
         venue_id,
         ...(city_id && !venue_id ? { city_id } : {}),
-        ...(lat !== '' ? { lat: Number(lat), lng: Number(lng) } : {}),
+        ...(lat !== '' && !venue_id ? { lat: Number(lat), lng: Number(lng) } : {}),
         starts_at: new Date(starts_at).toISOString(),
         stop_at: stop_at ? new Date(stop_at).toISOString() : null,
         type_event_ids: type_ids,
@@ -233,6 +242,24 @@ function SceneEditor({
               initial_name={initial?.city?.name}
             />
           )}
+          <LocationPicker
+            venues={venues}
+            city_id={city_id}
+            venue_id={venue_id}
+            lat={lat}
+            lng={lng}
+            on_venue={(value) => {
+              set_venue_id(value);
+              set_lat('');
+              set_lng('');
+              set_city_id(null);
+            }}
+            on_point={(point) => {
+              if (!venues) set_venue_id(null);
+              set_lat(point.lat.toFixed(MAP_COORDINATE_PRECISION));
+              set_lng(point.lng.toFixed(MAP_COORDINATE_PRECISION));
+            }}
+          />
           <div className="form-row">
             <label>
               Широта{!venues && ' · необязательно'}
@@ -242,6 +269,7 @@ function SceneEditor({
                 max={LATITUDE_MAX}
                 step="any"
                 value={lat}
+                disabled={!venues && !!venue_id}
                 onChange={(event) => set_lat(event.target.value)}
                 required={venues}
               />
@@ -254,6 +282,7 @@ function SceneEditor({
                 max={LONGITUDE_MAX}
                 step="any"
                 value={lng}
+                disabled={!venues && !!venue_id}
                 onChange={(event) => set_lng(event.target.value)}
                 required={venues}
               />
@@ -261,7 +290,8 @@ function SceneEditor({
           </div>
           {!venues && (
             <small className="muted">
-              Без координат используем местоположение выбранной площадки или города.
+              При выборе площадки используются её город и координаты. Без площадки выберите город и
+              точку на карте.
             </small>
           )}
           {venues ? (
@@ -352,8 +382,12 @@ function SceneEditor({
             : initial
               ? 'Сохранить изменения'
               : venues
-                ? 'Создать площадку'
-                : 'Опубликовать событие'}
+                ? direct_publish
+                  ? 'Создать площадку'
+                  : 'Предложить площадку'
+                : direct_publish
+                  ? 'Опубликовать событие'
+                  : 'Предложить событие'}
         </button>
       </form>
     </>

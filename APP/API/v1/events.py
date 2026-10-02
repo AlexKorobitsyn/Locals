@@ -5,7 +5,10 @@ from pydantic import AwareDatetime
 
 from APP.core.constants import DEFAULT_PAGE_LIMIT
 from APP.core.db import SessionDependency
-from APP.core.dependencies import CurrentUserDependency, OptionalUserDependency
+from APP.core.dependencies import (
+    CurrentUserDependency,
+    OptionalUserDependency,
+)
 from APP.schemas.event import EventCreate, EventOut, EventUpdate
 from APP.schemas.event_type import EventType
 from APP.schemas.pagination import EntityId, Page, PageLimit, PageOffset
@@ -41,6 +44,7 @@ async def events(
     offset: PageOffset = 0,
     sort: str = "starts_at",
     city_id: Annotated[int | None, Query(gt=0)] = None,
+    venue_id: Annotated[int | None, Query(gt=0)] = None,
     min_lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
     max_lat: Annotated[float | None, Query(ge=-90, le=90)] = None,
     min_lng: Annotated[float | None, Query(ge=-180, le=180)] = None,
@@ -59,6 +63,7 @@ async def events(
         starts_after,
         starts_before,
         type_event_id,
+        venue_id=venue_id,
         city_id=city_id,
         min_lat=min_lat,
         max_lat=max_lat,
@@ -93,3 +98,21 @@ async def remove(
     event_id: EntityId, session: SessionDependency, user: CurrentUserDependency
 ):
     await delete_event(session, user, event_id)
+
+
+@router.put("/events/{event_id}/attendance", response_model=EventOut)
+async def going(
+    event_id: EntityId, user: CurrentUserDependency, session: SessionDependency
+):
+    from APP.services.places import set_attendance
+
+    return await set_attendance(session, user, event_id)
+
+
+@router.delete("/events/{event_id}/attendance", response_model=EventOut)
+async def not_going(
+    event_id: EntityId, user: CurrentUserDependency, session: SessionDependency
+):
+    from APP.services.places import set_attendance
+
+    return await set_attendance(session, user, event_id, remove=True)

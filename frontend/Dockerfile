@@ -9,6 +9,7 @@ FROM nginxinc/nginx-unprivileged:1.28.0-alpine
 ENV FRONTEND_PORT=8080 API_UPSTREAM=http://api:8000
 ENV IMAGE_MAX_BYTES=10485760 AUDIO_MAX_BYTES=104857600
 ENV UPLOAD_MAX_BODY_SIZE=128m API_READ_TIMEOUT=600s
+ENV MAP_TILE_URL=https://tile.openstreetmap.org/{z}/{x}/{y}.png
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 8080

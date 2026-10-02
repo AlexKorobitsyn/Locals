@@ -1,3 +1,4 @@
+import { can_edit_public, can_moderate } from '../../app/permissions';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { entity_detail, EntityPicker } from '../../components/EntityPicker';
@@ -23,7 +24,12 @@ export function ArtistsField({
     queryFn: ({ signal }) => entity_detail('artists', selected_id!, signal),
   });
   function add_artist() {
-    if (!query.data?.is_owner || !('name' in query.data)) return;
+    if (
+      !query.data ||
+      !can_edit_public(query.data.is_owner, user?.level) ||
+      !('name' in query.data)
+    )
+      return;
     on_change([...value, { artist_id: query.data.id, name: query.data.name, role: 'primary' }]);
     set_selected_id(null);
   }
@@ -76,13 +82,13 @@ export function ArtistsField({
         label="Выбрать артиста"
         value={selected_id}
         on_change={set_selected_id}
-        owner_only
+        owner_only={!can_moderate(user?.level)}
       />
       <button
         type="button"
         className="button small"
         disabled={
-          !query.data?.is_owner ||
+          !can_edit_public(query.data?.is_owner, user?.level) ||
           !selected_id ||
           value.some((entry) => entry.artist_id === selected_id) ||
           value.length >= MAX_RELATIONS

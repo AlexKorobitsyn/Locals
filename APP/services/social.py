@@ -25,7 +25,7 @@ FOLLOW_MODELS = {"user": User, "artist": Artist, "venue": Venue}
 
 async def set_follow(session, user, kind, target_id, remove=False):
     async with session.begin():
-        await lock_user(session, user.id)
+        current_user = await lock_user(session, user.id)
         if kind == "user" and user.id == target_id:
             raise HTTPException(status_code=409, detail="Cannot follow yourself")
         model = FOLLOW_MODELS[kind]
@@ -35,7 +35,11 @@ async def set_follow(session, user, kind, target_id, remove=False):
             .where(model.id == target_id)
             .with_for_update(read=True, key_share=True, of=model)
         )
-        if target is None or (kind == "user" and not target.is_active):
+        if (
+            target is None
+            or (kind == "user" and not target.is_active)
+            or (kind == "venue" and target.publication_status != "published")
+        ):
             raise HTTPException(status_code=404, detail="Follow target not found")
         follow = await session.scalar(
             select(Follow).where(
@@ -61,6 +65,12 @@ async def set_follow(session, user, kind, target_id, remove=False):
                 session.add(follow)
                 await session.flush()
                 changed = True
+                if kind == "artist" and target.user_id != user.id:
+                    from APP.services.gamification import micro_award
+
+                    await micro_award(
+                        session, current_user, "follow", "artist", target_id
+                    )
             output = FollowOut.model_validate(follow)
         if changed:
             record_event(
@@ -113,6 +123,8 @@ def visible_activity():
             filters.extend([Playlist.visibility == "public", Playlist.kind == "custom"])
         if kind == "user":
             filters.append(User.is_active.is_(True))
+        if kind in ("venue", "event"):
+            filters.append(model.publication_status == "published")
         conditions.append(
             and_(
                 EventLog.target_type == kind,

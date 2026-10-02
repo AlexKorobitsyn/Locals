@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { use_listening_progress } from './use_listening_progress';
 import type { Track } from '../../api/catalog';
 import { api, unwrap } from '../../api/client';
 import { error_message } from '../../api/errors';
@@ -39,6 +40,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const previous_user = useRef(user?.id);
   state_ref.current = state;
   const current_track = state.queue[state.current_index];
+  use_listening_progress(audio_ref, current_track?.id, user?.id);
 
   useEffect(() => {
     if (previous_user.current !== undefined && previous_user.current !== user?.id)

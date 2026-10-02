@@ -1,3 +1,4 @@
+import { can_edit_public, can_moderate } from '../../app/permissions';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -103,15 +104,13 @@ function EditorLoader({ kind }: { kind: CatalogKind }) {
       />
     );
   if (
-    (id && !query.data?.is_owner) ||
-    (initial_artist.data && !initial_artist.data.is_owner) ||
-    (initial_album.data && !initial_album.data.is_owner)
+    (id && !can_edit_public(query.data?.is_owner, user?.level)) ||
+    (initial_artist.data && !can_edit_public(initial_artist.data.is_owner, user?.level)) ||
+    (initial_album.data && !can_edit_public(initial_album.data.is_owner, user?.level))
   )
     return (
       <ErrorState
-        error={
-          new ApiError(403, 'Редактировать и использовать для публикации можно только свои записи.')
-        }
+        error={new ApiError(403, 'Для изменения чужой записи требуются права модератора.')}
       />
     );
   return (
@@ -136,6 +135,7 @@ function CatalogEditor({
   initial_artist?: Artist;
   initial_album?: Album;
 }) {
+  const { user } = use_auth();
   const limits = use_upload_limits();
   const [name, set_name] = useState(
     initial ? ('name' in initial ? initial.name : initial.title) : '',
@@ -426,7 +426,7 @@ function CatalogEditor({
                       label="Альбом"
                       value={album_id}
                       on_change={set_album_id}
-                      owner_only
+                      owner_only={!can_moderate(user?.level)}
                     />
                     <label>
                       Текст трека · необязательно

@@ -78,6 +78,8 @@ jobs:
           import os, secrets
           with open(os.environ['GITHUB_ENV'], 'a') as target:
               target.write('JWT_SECRET_KEY=' + secrets.token_urlsafe(48) + '\n')
+              target.write('E2E_ADMIN_EMAIL=ci-admin@example.com\n')
+              target.write('E2E_ADMIN_PASSWORD=' + secrets.token_urlsafe(32) + '\n')
           PY
       - name: Start disposable FastAPI
         working-directory: .
@@ -99,6 +101,12 @@ jobs:
               async with engine.begin() as connection:
                   await connection.execute(text("INSERT INTO genres (slug, name) VALUES ('frontend-rock', 'Frontend Rock')"))
                   await connection.execute(text("INSERT INTO cities (name, country, lat, lng, timezone) VALUES ('Frontend City', 'RU', 56.83, 60.60, 'Asia/Yekaterinburg')"))
+              from sqlalchemy.ext.asyncio import async_sessionmaker
+              from APP.core.config import Settings
+              from APP.schemas.auth import RegisterInput
+              from APP.create_admin import provision_admin
+              async with async_sessionmaker(engine, expire_on_commit=False)() as session:
+                  await provision_admin(session, Settings(), RegisterInput(email=os.environ['E2E_ADMIN_EMAIL'], password=os.environ['E2E_ADMIN_PASSWORD'], display_name='CI administrator'))
               await engine.dispose()
           asyncio.run(seed())
           PY

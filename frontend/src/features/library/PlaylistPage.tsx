@@ -1,3 +1,4 @@
+import { can_moderate } from '../../app/permissions';
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -45,7 +46,11 @@ function PlaylistContent() {
         }),
       ),
   });
-  const editable = !!query.data?.is_owner && query.data.kind !== 'liked';
+  const editable =
+    (!!query.data?.is_owner ||
+      user?.level === 'admin' ||
+      (query.data?.visibility === 'public' && can_moderate(user?.level))) &&
+    query.data?.kind !== 'liked';
   const tracks_query = useQuery({
     queryKey: ['playlist_tracks', user?.id, playlist_id, editable ? 'all' : offset],
     enabled: !!query.data,

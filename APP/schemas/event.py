@@ -19,6 +19,7 @@ from APP.schemas.venue import VenueShort
 
 
 class EventOut(BaseSchema):
+    publication_status: str = "published"
     id: int
     name: str
     venue: VenueShort | None = None
@@ -33,6 +34,8 @@ class EventOut(BaseSchema):
     is_owner: bool = False
     is_liked_by_me: bool = False
     likes_count: NonNegativeInt = 0
+    attendees_count: NonNegativeInt = 0
+    is_going_by_me: bool = False
 
 
 class EventCreate(InputSchema):

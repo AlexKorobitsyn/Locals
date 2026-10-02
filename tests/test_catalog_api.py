@@ -13,7 +13,7 @@ def create(client, path, headers, payload):
 def test_catalog_creation_details_and_credits(api_client, account, catalog_db):
     user, headers = account()
     catalog_db.execute(
-        "UPDATE users SET level='experienced' WHERE id=:id", {"id": user["id"]}
+        "UPDATE users SET level='moderator' WHERE id=:id", {"id": user["id"]}
     )
     genre = create(api_client, "genres", headers, {"name": "Jazz", "slug": "jazz"})
     artist = create(
@@ -84,7 +84,7 @@ def test_catalog_ownership_and_missing_references(api_client, account, catalog_d
         api_client.post("/api/v1/artists", json={"name": "Anonymous"}).status_code
         == 401
     )
-    for level in ("green", "admin"):
+    for level in ("green", "experienced"):
         catalog_db.execute(
             "UPDATE users SET level=:level WHERE id=:id",
             {"level": level, "id": other["id"]},
@@ -302,7 +302,7 @@ def test_genre_privileges_uniqueness_and_empty_artist_validation(
         == 403
     )
     catalog_db.execute(
-        "UPDATE users SET level='experienced' WHERE id=:id", {"id": user["id"]}
+        "UPDATE users SET level='moderator' WHERE id=:id", {"id": user["id"]}
     )
     create(api_client, "genres", headers, {"slug": "jazz", "name": "Jazz"})
     assert (

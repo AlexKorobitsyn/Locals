@@ -13,6 +13,7 @@ from sqlalchemy import (
     Table,
     Text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from APP.core.constants import NAME_MAX_LENGTH
@@ -43,6 +44,7 @@ class Album(RatedMixin, TimestampMixin, Base):
         CheckConstraint("length(btrim(title)) > 0", name="title_nonempty"),
     )
 
+    owner_fields: Mapped[list[str]] = mapped_column(JSONB, server_default="[]")
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     title: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH), index=True)
     cover_url: Mapped[str | None] = mapped_column(Text)

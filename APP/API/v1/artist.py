@@ -3,10 +3,20 @@ from fastapi import APIRouter, Response, status
 from APP.core.config import SettingsDependency
 from APP.core.constants import DEFAULT_PAGE_LIMIT
 from APP.core.db import SessionDependency
-from APP.core.dependencies import CurrentUserDependency, OptionalUserDependency
+from APP.core.dependencies import (
+    CurrentUserDependency,
+    OptionalUserDependency,
+    PrivilegedUserDependency,
+)
 from APP.schemas.artist import ArtistCreate, ArtistOut, ArtistRatedShort, ArtistUpdate
 from APP.schemas.pagination import EntityId, Page, PageLimit, PageOffset
-from APP.services.catalog import create_artist, get_detail, list_catalog, update_catalog
+from APP.services.catalog import (
+    create_artist,
+    delete_catalog,
+    get_detail,
+    list_catalog,
+    update_catalog,
+)
 
 router = APIRouter(prefix="/artists", tags=["artists"])
 
@@ -56,3 +66,10 @@ async def update(
     settings: SettingsDependency,
 ):
     return await update_catalog(session, "artist", artist_id, payload, user, settings)
+
+
+@router.delete("/{artist_id}", status_code=204)
+async def remove(
+    artist_id: EntityId, session: SessionDependency, user: PrivilegedUserDependency
+):
+    await delete_catalog(session, "artist", artist_id, user)

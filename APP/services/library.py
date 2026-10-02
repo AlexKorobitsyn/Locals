@@ -4,8 +4,13 @@ from sqlalchemy import case, exists, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from APP.core.constants import PLAYLIST_MAX_TRACKS, FavoriteTarget, PlaylistKind
-from APP.core.dependencies import require_owner
+from APP.core.constants import (
+    PLAYLIST_MAX_TRACKS,
+    FavoriteTarget,
+    PlaylistKind,
+    UserLevel,
+)
+from APP.core.dependencies import require_owner_or_admin, require_owner_or_privileged
 from APP.models.album import Album
 from APP.models.artist import Artist
 from APP.models.event import Event
@@ -41,6 +46,8 @@ FAVORITE_MODELS = {
 
 
 def visible_playlist(viewer):
+    if viewer is not None and viewer.level == UserLevel.admin:
+        return literal(True)
     return or_(
         Playlist.visibility == "public",
         Playlist.user_id == viewer.id if viewer is not None else literal(False),
@@ -196,7 +203,10 @@ async def create_playlist(session, payload, user):
 
 
 def editable_playlist(playlist, user):
-    require_owner(playlist.user_id, user)
+    if playlist.visibility == "public":
+        require_owner_or_privileged(playlist.user_id, user)
+    else:
+        require_owner_or_admin(playlist.user_id, user)
     if playlist.kind == PlaylistKind.liked:
         raise HTTPException(
             status_code=409, detail="Liked is managed through track favorites"
@@ -304,7 +314,7 @@ async def change_tracks(
     session, playlist_id, user, operation, payload=None, track_id=None
 ):
     async with session.begin():
-        await lock_user(session, user.id)
+        current_user = await lock_user(session, user.id)
         playlist = await get_playlist(session, playlist_id, user, lock=True)
         editable_playlist(playlist, user)
         items = list(
@@ -335,6 +345,14 @@ async def change_tracks(
             )
             items.insert(position, item)
             session.add(item)
+            if playlist.user_id == user.id:
+                from APP.services.gamification import micro_award
+
+                track = await session.get(Track, payload.track_id)
+                if track.user_id != user.id:
+                    await micro_award(
+                        session, current_user, "playlist_add", "track", payload.track_id
+                    )
         elif operation == "remove":
             found = next((item for item in items if item.track_id == track_id), None)
             if found is not None:
@@ -374,7 +392,9 @@ async def favorite_target(session, kind, entity_id, user, remove=False):
     target = await session.scalar(
         select(model).where(model.id == entity_id).with_for_update()
     )
-    if target is None:
+    if target is None or (
+        kind in ("venue", "event") and target.publication_status != "published"
+    ):
         raise HTTPException(status_code=404, detail="Favorite target not found")
     if kind == "playlist" and not remove:
         if target.visibility == "private" and target.user_id != user.id:

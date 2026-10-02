@@ -1,3 +1,4 @@
+import { can_create_scene } from '../../app/permissions';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, Disc3, Mic2, Upload } from 'lucide-react';
@@ -169,6 +170,7 @@ export function StudioPage() {
   );
 }
 function StudioContent() {
+  const { user, experience } = use_auth();
   return (
     <>
       <div className="page-intro">
@@ -210,14 +212,16 @@ function StudioContent() {
         </Link>
       </div>
       <Publications />
-      <div className="actions">
-        <Link className="button" to="/events/new">
-          Добавить событие
-        </Link>
-        <Link className="button" to="/venues/new">
-          Добавить площадку
-        </Link>
-      </div>
+      {can_create_scene(user?.level, experience) && (
+        <div className="actions">
+          <Link className="button" to="/events/new">
+            Добавить событие
+          </Link>
+          <Link className="button" to="/venues/new">
+            Добавить площадку
+          </Link>
+        </div>
+      )}
     </>
   );
 }

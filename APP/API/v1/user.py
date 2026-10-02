@@ -80,6 +80,13 @@ async def profile(session, user_id, viewer, schema):
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
     output = schema.model_validate(row.User)
+    from APP.services.experience import experience_output
+
+    experience = experience_output(row.User, session.info["settings"])
+    output.experience_level, output.level_name = (
+        experience.experience_level,
+        experience.level_name,
+    )
     output.followers_count = row.followers_count
     output.following_count = row.following_count
     output.is_followed_by_me = row.is_followed_by_me

@@ -23,6 +23,10 @@ if TYPE_CHECKING:
 class Venue(RatedMixin, TimestampMixin, Base):
     __tablename__ = "venues"
     __table_args__ = (
+        CheckConstraint(
+            "publication_status IN ('pending','published','rejected')",
+            name="publication_status_valid",
+        ),
         *RatedMixin.rating_constraints(),
         CheckConstraint("length(btrim(name)) > 0", name="name_nonempty"),
         CheckConstraint("lat BETWEEN -90 AND 90", name="latitude_valid"),
@@ -32,6 +36,9 @@ class Venue(RatedMixin, TimestampMixin, Base):
         ),
     )
 
+    publication_status: Mapped[str] = mapped_column(
+        String(64), server_default="published", index=True
+    )
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     name: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH), index=True)
     description: Mapped[str | None] = mapped_column(Text)

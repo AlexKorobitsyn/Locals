@@ -12,6 +12,10 @@ class UserShort(BaseSchema):
 
 
 class UserOut(UserShort):
+    scene_verified: bool = False
+    experience_points: NonNegativeInt = 0
+    experience_level: int = 1
+    level_name: str = "Новичок"
     bio: str | None = None
     type: Literal["user", "artist"]
     city: CityOut | None = None

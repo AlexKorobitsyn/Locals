@@ -1,3 +1,4 @@
+import { can_edit_public } from '../../app/permissions';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -51,7 +52,7 @@ export function Reviews({
         <h2>Рецензии слушателей</h2>
         <span className="muted">{reviews_query.data?.total || 0}</span>
       </div>
-      {user && my_rating != null && (!own_review || editing_review) && (
+      {user && (editing_review || (my_rating != null && !own_review)) && (
         <ReviewForm
           key={editing_review?.id || 'new'}
           target_type={target_type}
@@ -84,7 +85,7 @@ export function Reviews({
               <small className="muted">
                 {new Date(review.created_at).toLocaleDateString('ru-RU')}
               </small>
-              {review.is_owner && (
+              {can_edit_public(review.is_owner, user?.level) && (
                 <div className="actions">
                   <button className="text-button" onClick={() => set_editing_review(review)}>
                     Редактировать
