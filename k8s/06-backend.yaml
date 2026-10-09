@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata: {name: app, namespace: locals}
+spec:
+  selector: {app: app}
+  ports: [{name: http, port: 8000, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: app, namespace: locals}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: app}
+  template:
+    metadata:
+      labels: {app: app}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: backend
+          image: locals-backend:k8s
+          imagePullPolicy: Never
+          ports: [{name: http, containerPort: 8000}]
+          envFrom:
+            - configMapRef: {name: locals-config}
+            - secretRef: {name: locals-secret}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          startupProbe:
+            httpGet: {path: /api/v1/health/live, port: http}
+            periodSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /api/v1/health/ready, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /api/v1/health/live, port: http}
+            periodSeconds: 10

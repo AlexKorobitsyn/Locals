@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Service
+metadata: {name: storage, namespace: locals}
+spec:
+  clusterIP: None
+  selector: {app: storage}
+  ports:
+    - {name: s3, port: 9000, targetPort: s3}
+    - {name: console, port: 9001, targetPort: console}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: {name: storage, namespace: locals}
+spec:
+  serviceName: storage
+  replicas: 1
+  selector:
+    matchLabels: {app: storage}
+  template:
+    metadata:
+      labels: {app: storage}
+    spec:
+      securityContext: {runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001}
+      containers:
+        - name: minio
+          image: locals-minio:k8s
+          imagePullPolicy: Never
+          ports:
+            - {name: s3, containerPort: 9000}
+            - {name: console, containerPort: 9001}
+          envFrom:
+            - configMapRef: {name: locals-config}
+            - secretRef: {name: locals-secret}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          volumeMounts: [{name: data, mountPath: /data}]
+          startupProbe:
+            httpGet: {path: /minio/health/live, port: s3}
+            periodSeconds: 2
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: {path: /minio/health/ready, port: s3}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /minio/health/live, port: s3}
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests: {storage: 5Gi}
