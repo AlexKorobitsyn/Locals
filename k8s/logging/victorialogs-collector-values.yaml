@@ -1,0 +1,20 @@
+remoteWrite:
+  - url: http://victoria-logs-single-server.victoria-logs.svc.cluster.local:9428
+    maxDiskUsagePerURL: 1GB
+    headers:
+      VL-Ignore-Fields:
+        - kubernetes.container_id
+        - kubernetes.pod_ip
+        - kubernetes.pod_labels.pod-template-hash
+collector:
+  msgField:
+    - message
+    - msg
+    - log
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi

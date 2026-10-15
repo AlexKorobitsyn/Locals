@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         extra="ignore",
         hide_input_in_errors=True,
     )
-
+    SERVICE_NAME: str = "locals-backend"
     app_name: str = "Music Service"
     port: int = Field(default=8000, gt=0, le=MAX_PORT)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"

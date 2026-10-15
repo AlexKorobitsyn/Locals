@@ -1,8 +1,30 @@
+map $status $log_level {
+    ~^[23]  "INFO";
+    ~^4     "WARNING";
+    ~^5     "ERROR";
+    default "INFO";
+}
+log_format json_combined escape=json
+  '{'
+    '"timestamp":"$time_iso8601",'
+    '"level":"$log_level",'
+    '"service.name":"locals-frontend",'
+    '"message":"$request_method $uri $server_protocol",'
+    '"method":"$request_method",'
+    '"path":"$uri",'
+    '"status":$status,'
+    '"duration_sec":$request_time,'
+    '"remote_addr":"$remote_addr",'
+    '"user_agent":"$http_user_agent",'
+    '"request_id":"$request_id"'
+  '}';
 server {
     listen ${FRONTEND_PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
+    access_log /dev/stdout json_combined;
+    error_log /dev/stderr warn;
 
     location = /config.json {
         default_type application/json;
@@ -13,6 +35,7 @@ server {
     location /api/ {
         proxy_pass ${API_UPSTREAM};
         proxy_set_header Host $host;
+        proxy_set_header X-Request-ID $request_id;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         client_max_body_size ${UPLOAD_MAX_BODY_SIZE};
