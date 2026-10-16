@@ -1,0 +1,61 @@
+server:
+  fullnameOverride: vmalert
+  replicaCount: 1
+  datasource:
+    url: http://victoria-logs-single-server.victoria-logs.svc.cluster.local:9428
+  extraArgs:
+    loggerFormat: json
+    rule.evalDelay: 5s
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  config:
+    alerts:
+      groups:
+        - name: locals-log-alerts
+          type: vlogs
+          interval: 15s
+          rules:
+            - alert: LocalsTooMany404
+              expr: >-
+                _time:5m kubernetes.pod_namespace:="locals" logger:="APP.http" status:="404"
+                | stats count() as not_found
+                | filter not_found:>2
+              for: 30s
+              labels:
+                severity: warning
+                service: locals-backend
+              annotations:
+                summary: "Locals: минимум три ответа 404 за пять минут"
+                description: "Учебный алерт по HTTP-логам FastAPI; запрос и порог описаны в README6.md."
+
+alertmanager:
+  enabled: true
+  fullnameOverride: alertmanager
+  replicaCount: 1
+  persistentVolume:
+    enabled: true
+    size: 128Mi
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  config:
+    global:
+      resolve_timeout: 1m
+    route:
+      receiver: local-ui
+      group_by: [alertname, service]
+      group_wait: 5s
+      group_interval: 15s
+      repeat_interval: 1h
+    # Уведомление видно в UI; внешние сообщения не отправляются.
+    receivers:
+      - name: local-ui

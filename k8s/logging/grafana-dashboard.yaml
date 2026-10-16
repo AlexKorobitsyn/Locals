@@ -1,0 +1,183 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locals-logs-dashboard
+  namespace: monitoring
+data:
+  locals-logs.json: |
+    {
+      "uid": "locals-logs",
+      "title": "Locals — VictoriaLogs",
+      "tags": [
+        "locals",
+        "victorialogs"
+      ],
+      "schemaVersion": 39,
+      "version": 1,
+      "editable": false,
+      "timezone": "browser",
+      "refresh": "15s",
+      "time": {
+        "from": "now-15m",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "HTTP-запросы FastAPI",
+          "type": "logs",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "locals-victorialogs"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 10
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "locals-victorialogs"
+              },
+              "expr": "kubernetes.pod_namespace:=\"locals\" logger:=\"APP.http\"",
+              "queryType": "instant",
+              "editorMode": "code",
+              "maxLines": 200
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "options": {
+            "showTime": true,
+            "showLabels": false,
+            "wrapLogMessage": true,
+            "sortOrder": "Descending",
+            "enableLogDetails": true
+          }
+        },
+        {
+          "id": 2,
+          "title": "Ответы 404 за пять минут (порог алерта: 3)",
+          "type": "stat",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "locals-victorialogs"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "locals-victorialogs"
+              },
+              "expr": "_time:5m kubernetes.pod_namespace:=\"locals\" logger:=\"APP.http\" status:=\"404\" | stats count() as not_found",
+              "queryType": "stats",
+              "editorMode": "code",
+              "maxLines": 200
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": []
+          },
+          "options": {}
+        },
+        {
+          "id": 3,
+          "title": "p95 времени HTTP-ответа",
+          "type": "stat",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "locals-victorialogs"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 10,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "locals-victorialogs"
+              },
+              "expr": "kubernetes.pod_namespace:=\"locals\" logger:=\"APP.http\" response_completed:=\"true\" | stats quantile(0.95, duration_ms) as p95_ms",
+              "queryType": "stats",
+              "editorMode": "code",
+              "maxLines": 200
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "options": {}
+        },
+        {
+          "id": 4,
+          "title": "Количество записей по сервису и уровню",
+          "type": "bargauge",
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "locals-victorialogs"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 17,
+            "w": 24,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "locals-victorialogs"
+              },
+              "expr": "kubernetes.pod_namespace:=\"locals\" kubernetes.container_name:in(backend,nginx) | stats by (service.name, level) count() as logs_count",
+              "queryType": "stats",
+              "editorMode": "code",
+              "maxLines": 200
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "min": 0,
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "orientation": "horizontal",
+            "displayMode": "basic",
+            "reduceOptions": {
+              "values": false,
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": ""
+            },
+            "showUnfilled": true
+          }
+        }
+      ]
+    }
