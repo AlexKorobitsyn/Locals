@@ -32,7 +32,6 @@ server:
               annotations:
                 summary: "Locals: минимум три ответа 404 за пять минут"
                 description: "Учебный алерт по HTTP-логам FastAPI; запрос и порог описаны в README6.md."
-
 alertmanager:
   enabled: true
   fullnameOverride: alertmanager
@@ -56,6 +55,5 @@ alertmanager:
       group_wait: 5s
       group_interval: 15s
       repeat_interval: 1h
-    # Уведомление видно в UI; внешние сообщения не отправляются.
     receivers:
       - name: local-ui

@@ -12,12 +12,12 @@ def main():
     if SECRET_FILE.exists():
         logging.info("02-secret.yaml уже существует, значения сохранены")
         return
-    postgres_pwd = secrets.token_hex(SECRET_BYTES)
+    postgres_password = secrets.token_hex(SECRET_BYTES)
     minio_pwd = secrets.token_hex(SECRET_BYTES)
     vals = {
         "JWT_SECRET_KEY": secrets.token_hex(SECRET_BYTES),
-        "postgres_pwd": postgres_pwd,
-        "DATABASE_URL": f"postgresql+asyncpg://{POSTGRES_USER}:{postgres_pwd}@db:5432/{POSTGRES_DB}",
+        "POSTGRES_PASSWORD": postgres_password,
+        "DATABASE_URL": f"postgresql+asyncpg://{POSTGRES_USER}:{postgres_password}@db:5432/{POSTGRES_DB}",
         "MINIO_ROOT_PASSWORD": minio_pwd,
         "S3_SECRET_KEY": minio_pwd,
     }

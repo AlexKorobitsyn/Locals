@@ -97,7 +97,7 @@ kubectl -n locals scale statefulset/db statefulset/storage --replicas=0
 
 ### `02-secret.yaml.example` и `create_secret.py`
 
-Шаблон описывает Secret `locals-secret` Python-скрипт создаёт настоящий `02-secret.yaml` из .env
+Шаблон описывает Secret `locals-secret`. Python-скрипт создаёт `02-secret.yaml` со случайными значениями.
 
 ### `03-postgres.yaml`
 
