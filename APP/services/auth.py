@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette.concurrency import run_in_threadpool
 
+from APP.core.metrics import LOGIN_OPERATIONS
 from APP.core.config import Settings
 from APP.core.dependencies import unauthorized
 from APP.core.security import (
@@ -99,36 +100,46 @@ def token_pair(
 async def login_user(
     session: AsyncSession, payload: LoginInput, settings: Settings
 ) -> TokenPair:
-    async with session.begin():
-        user = await session.scalar(
-            select(User).where(func.lower(User.email) == str(payload.email))
-        )
-        password_hash = (
-            user.password_hash
-            if user is not None
-            else await run_in_threadpool(dummy_password_hash, settings.bcrypt_rounds)
-        )
-        valid = await run_in_threadpool(
-            verify_password,
-            payload.password.get_secret_value(),
-            password_hash,
-            settings.bcrypt_rounds,
-        )
-        if not valid or user is None or not user.is_active:
-            raise unauthorized()
-        now = datetime.now(UTC)
-        refresh_token = generate_refresh_token()
-        auth_session = AuthSession(
-            id=uuid4(),
-            user_id=user.id,
-            refresh_token_hash=hash_refresh_token(refresh_token),
-            expires_at=now + timedelta(days=settings.refresh_token_ttl_days),
-        )
-        session.add(auth_session)
-        await session.flush()
-        pair = token_pair(user.id, auth_session, refresh_token, settings, now)
-        record_auth_event(session, "user_logged_in", user.id, auth_session.id)
-    return pair
+    try:
+        async with session.begin():
+            user = await session.scalar(
+                select(User).where(func.lower(User.email) == str(payload.email))
+            )
+            password_hash = (
+                user.password_hash
+                if user is not None
+                else await run_in_threadpool(dummy_password_hash, settings.bcrypt_rounds)
+            )
+            valid = await run_in_threadpool(
+                verify_password,
+                payload.password.get_secret_value(),
+                password_hash,
+                settings.bcrypt_rounds,
+            )
+            if not valid or user is None or not user.is_active:
+                raise unauthorized()
+            now = datetime.now(UTC)
+            refresh_token = generate_refresh_token()
+            auth_session = AuthSession(
+                id=uuid4(),
+                user_id=user.id,
+                refresh_token_hash=hash_refresh_token(refresh_token),
+                expires_at=now + timedelta(days=settings.refresh_token_ttl_days),
+            )
+            session.add(auth_session)
+            await session.flush()
+            pair = token_pair(user.id, auth_session, refresh_token, settings, now)
+            record_auth_event(session, "user_logged_in", user.id, auth_session.id)
+    except HTTPException as exc:
+            outcome = "rejected" if exc.status_code == 401 else "error"
+            LOGIN_OPERATIONS.labels(outcome=outcome).inc()
+            raise
+    except Exception:
+        LOGIN_OPERATIONS.labels(outcome="error").inc()
+        raise
+    else:
+        LOGIN_OPERATIONS.labels(outcome="success").inc()
+        return pair
 
 
 async def refresh_session(

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from APP.API.v1.router import router
 from APP.core.config import Settings, get_settings
 from APP.core.db import create_engine, create_session_factory
@@ -57,4 +57,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     app.state.settings = settings
     app.include_router(router)
+    Instrumentator().instrument(
+        app,
+        metric_namespace="monitoring",
+        metric_subsystem="locals",
+    ).expose(app)
     return app
