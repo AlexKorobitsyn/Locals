@@ -119,9 +119,25 @@ kubectl -n locals logs deployment/app --tail=15
 kubectl -n locals logs deployment/frontend --tail=15
 ```
 
-В vmui выполнил четыре запроса из [отчёта](Отчёт.md), диапазон Last 15 minutes. Алерт `LocalsTooMany404` срабатывает при трёх 404 за 5 минут.
+В vmui выполнил четыре запроса из отчёта диапазон Last 15 minutes. Алерт `LocalsTooMany404` срабатывает при трёх 404 за 5 минут.
 
 ```bash
 curl -fsS http://localhost:18880/api/v1/alerts
 curl -fsS http://localhost:19093/api/v2/alerts
+```
+
+VictoriaMetrics:
+
+```bash
+helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts/ --version 0.49.0 -n default -f guide-vmsingle-values.yaml --wait
+```
+
+```bash
+kubectl -n default port-forward svc/vmsingle-victoria-metrics-single-server 8428:8428
+```
+
+Как проверить?:
+
+```bash
+python3 scripts/check_metrics.py
 ```

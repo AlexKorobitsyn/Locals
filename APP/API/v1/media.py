@@ -5,6 +5,7 @@ from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import RedirectResponse
 
+from APP.core.metrics import AUDIO_UPLOADS
 from APP.core.config import SettingsDependency
 from APP.core.db import SessionDependency
 from APP.core.dependencies import CurrentUserDependency, OptionalUserDependency
@@ -36,7 +37,21 @@ async def audio_upload(
     storage: StorageDependency,
     settings: SettingsDependency,
 ):
-    return await upload_media(session, user, file, "audio", storage, settings)
+    try:
+        result = await upload_media(
+            session, user, file, "audio", storage, settings
+        )
+    except HTTPException as exc:
+        outcome = "rejected" if exc.status_code//100 == 4 else "error"
+        AUDIO_UPLOADS.labels(outcome=outcome).inc()
+        raise
+    except Exception:
+        AUDIO_UPLOADS.labels(outcome="error").inc()
+        raise
+    else:
+        AUDIO_UPLOADS.labels(outcome="success").inc()
+        return result
+
 
 
 @router.get("/media/{media_id}", response_model=MediaOut)

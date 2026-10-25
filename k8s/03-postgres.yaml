@@ -23,6 +23,10 @@ spec:
   template:
     metadata:
       labels: {app: db}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: postgres
@@ -49,6 +53,24 @@ spec:
             exec:
               command: [sh, -c, 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             periodSeconds: 10
+        - name: postgres-exporter
+          image: quay.io/prometheuscommunity/postgres-exporter:v0.19.1
+          ports:
+            - name: pg-metrics
+              containerPort: 9187
+          env:
+            - name: DATA_SOURCE_URI
+              value: "127.0.0.1:5432/music?sslmode=disable"
+            - name: DATA_SOURCE_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: locals-config
+                  key: POSTGRES_USER
+            - name: DATA_SOURCE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: locals-secret
+                  key: POSTGRES_PASSWORD
   volumeClaimTemplates:
     - metadata: {name: data}
       spec:

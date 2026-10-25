@@ -1,0 +1,60 @@
+LOCALS / Проверка метрик в minikube
+Дата: 2026-10-24T22:41:47+05:00
+
+$ kubectl -n default get pods,svc -l app.kubernetes.io/instance=vmsingle
+NAME                                            READY   STATUS    RESTARTS   AGE
+pod/vmsingle-victoria-metrics-single-server-0   1/1     Running   0          35m
+
+NAME                                              TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
+service/vmsingle-victoria-metrics-single-server   ClusterIP   None         <none>        8428/TCP   26h
+
+$ kubectl -n locals get pods,svc
+NAME                           READY   STATUS      RESTARTS        AGE
+pod/app-576587bfc4-smhq9       1/1     Running     0               4h4m
+pod/db-0                       2/2     Running     0               15m
+pod/frontend-c76cb6f96-594td   1/1     Running     0               7h35m
+pod/migrate-9ql5d              0/1     Completed   0               14d
+pod/storage-0                  1/1     Running     5 (7h36m ago)   14d
+pod/storage-init-4ml4w         0/1     Completed   0               14d
+
+NAME               TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+service/app        ClusterIP   10.102.18.11     <none>        8000/TCP            14d
+service/db         ClusterIP   None             <none>        5432/TCP            14d
+service/frontend   ClusterIP   10.109.184.218   <none>        80/TCP              14d
+service/storage    ClusterIP   None             <none>        9000/TCP,9001/TCP   14d
+
+1. Сбор приложения и PostgreSQL
+up: app-576587bfc4-smhq9 10.244.0.96:8000 = 1
+up: db-0 10.244.0.98:9187 = 1
+pg_up{pod="db-0"} = 1
+python_info -> есть в VictoriaMetrics
+process_resident_memory_bytes -> есть в VictoriaMetrics
+monitoring_locals_http_requests_total -> есть в VictoriaMetrics
+
+2. Четыре бизнес-сценария (новый демонстрационный аккаунт)
+POST /api/v1/auth/register -> HTTP 201
+POST /api/v1/auth/login -> HTTP 200
+GET /api/v1/me -> HTTP 200
+PASS: вход и чтение собственного профиля
+POST /api/v1/artists -> HTTP 201
+POST /api/v1/tracks -> HTTP 201
+POST /api/v1/media/audio -> HTTP 201
+GET /api/v1/media/10 -> HTTP 200
+PASS: WAV загружен; SHA-256 в БД совпадает
+PUT /api/v1/tracks/6/audio -> HTTP 204
+GET /api/v1/tracks/6/playback -> HTTP 200
+GET <ссылка на аудио> -> HTTP 200
+PASS: аудио скачано из MinIO; SHA-256 исходного и скачанного файла совпадает
+PUT /api/v1/ratings -> HTTP 200
+POST /api/v1/reviews -> HTTP 201
+GET /api/v1/reviews/1 -> HTTP 200
+PASS: рецензия создана и прочитана с исходным текстом
+
+3. Ожидание сохранения новых значений в VictoriaMetrics (scrape: 15 секунд)
+locals_login_operations_total: 0 -> 1 (success, VictoriaMetrics)
+locals_audio_uploads_total: 0 -> 1 (success, VictoriaMetrics)
+locals_playback_link_requests_total: 0 -> 1 (success, VictoriaMetrics)
+locals_review_submitted_total: 0 -> 1 (success, VictoriaMetrics)
+POST /api/v1/auth/logout -> HTTP 204
+
+PASS: сбор, PostgreSQL, рантайм и все четыре бизнес-сценария подтверждены.

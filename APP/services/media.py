@@ -16,6 +16,7 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy import exists, or_, select
 from starlette.concurrency import run_in_threadpool
 
+from APP.core.metrics import PLAYBACK_LINK_REQUESTS
 from APP.core.constants import NAME_MAX_LENGTH, UPLOAD_CHUNK_BYTES
 from APP.core.dependencies import require_owner_or_admin, require_owner_or_privileged
 from APP.models.album import Album
@@ -280,17 +281,28 @@ async def accessible_media(session, media_id, user):
 
 
 async def playback(session, track_id, storage, settings):
-    media = await session.scalar(
-        select(Media)
-        .join(Track, Track.audio_media_id == Media.id)
-        .where(Track.id == track_id, Media.kind == "audio", Media.status == "ready")
-    )
-    if media is None:
-        raise HTTPException(status_code=404, detail="Track audio not found")
-    url = await run_in_threadpool(storage.url, media.object_key, media.content_type)
-    return PlaybackOut(
-        url=url,
-        expires_in=settings.s3_presign_ttl_seconds,
-        content_type=media.content_type,
-        duration=media.duration,
-    )
+    try:
+        media = await session.scalar(
+            select(Media)
+            .join(Track, Track.audio_media_id == Media.id)
+            .where(Track.id == track_id, Media.kind == "audio", Media.status == "ready")
+        )
+        if media is None:
+            raise HTTPException(status_code=404, detail="Track audio not found")
+        url = await run_in_threadpool(storage.url, media.object_key, media.content_type)
+        result = PlaybackOut(
+            url=url,
+            expires_in=settings.s3_presign_ttl_seconds,
+            content_type=media.content_type,
+            duration=media.duration,
+        )
+    except HTTPException as exc:
+        outcome = "rejected" if exc.status_code//100 == 4 else "error"
+        PLAYBACK_LINK_REQUESTS.labels(outcome=outcome).inc()
+        raise
+    except Exception:
+        PLAYBACK_LINK_REQUESTS.labels(outcome="error").inc()
+        raise
+    else:
+        PLAYBACK_LINK_REQUESTS.labels(outcome="success").inc()
+        return result

@@ -1,0 +1,48 @@
+{
+  "checked_at": "2026-10-24T22:41:47+05:00",
+  "status": "PASS",
+  "targets": [
+    {
+      "__name__": "up",
+      "instance": "10.244.0.96:8000",
+      "job": "locals-pods",
+      "namespace": "locals",
+      "pod": "app-576587bfc4-smhq9"
+    },
+    {
+      "__name__": "up",
+      "instance": "10.244.0.98:9187",
+      "job": "locals-pods",
+      "namespace": "locals",
+      "pod": "db-0"
+    }
+  ],
+  "pg_up": 1,
+  "runtime_metrics": [
+    "python_info",
+    "process_resident_memory_bytes",
+    "monitoring_locals_http_requests_total"
+  ],
+  "before": {
+    "locals_login_operations_total": 0.0,
+    "locals_audio_uploads_total": 0.0,
+    "locals_playback_link_requests_total": 0.0,
+    "locals_review_submitted_total": 0.0
+  },
+  "after": {
+    "locals_login_operations_total": 1.0,
+    "locals_audio_uploads_total": 1.0,
+    "locals_playback_link_requests_total": 1.0,
+    "locals_review_submitted_total": 1.0
+  },
+  "audio_sha256": "56d4af65701c26df20bd4021eda95b6e830348ce3a746086079fe89285548dc9",
+  "audio_readback": "PASS",
+  "review_readback": "PASS",
+  "demo_ids": {
+    "user": 5,
+    "artist": 4,
+    "track": 6,
+    "media": 10,
+    "review": 1
+  }
+}

@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from APP.core.metrics import REVIEWS_SUBMITTED
 from APP.core.dependencies import require_owner_or_privileged
 from APP.models.rating import Rating
 from APP.models.review import Review
@@ -84,37 +85,47 @@ async def list_reviews(session, viewer, limit, offset, kind=None, target_id=None
 async def create_review(
     session: AsyncSession, payload: ReviewCreate, user: User
 ) -> ReviewOut:
-    async with session.begin():
-        current_user = await lock_user(session, user.id)
-        await lock_target(session, payload.target_type, payload.target_id)
-        rating = await session.scalar(
-            select(Rating).where(
-                Rating.user_id == user.id,
-                Rating.target_type == payload.target_type,
-                Rating.target_id == payload.target_id,
+    try:
+        async with session.begin():
+            current_user = await lock_user(session, user.id)
+            await lock_target(session, payload.target_type, payload.target_id)
+            rating = await session.scalar(
+                select(Rating).where(
+                    Rating.user_id == user.id,
+                    Rating.target_type == payload.target_type,
+                    Rating.target_id == payload.target_id,
+                )
             )
-        )
-        if rating is None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Set a rating before writing a review",
-            )
-        if (
-            await session.scalar(select(Review.id).where(Review.rating_id == rating.id))
-            is not None
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail="Review already exists"
-            )
-        review = Review(rating_id=rating.id, title=payload.title, text=payload.text)
-        session.add(review)
-        await session.flush()
-        from APP.services.gamification import review_award
+            if rating is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Set a rating before writing a review",
+                )
+            if (
+                await session.scalar(select(Review.id).where(Review.rating_id == rating.id))
+                is not None
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, detail="Review already exists"
+                )
+            review = Review(rating_id=rating.id, title=payload.title, text=payload.text)
+            session.add(review)
+            await session.flush()
+            from APP.services.gamification import review_award
 
-        await review_award(session, current_user, rating, review.text)
-        record_event(session, user.id, "review_created", "review", review.id)
-        output = await get_review(session, review.id, user)
-    return output
+            await review_award(session, current_user, rating, review.text)
+            record_event(session, user.id, "review_created", "review", review.id)
+            output = await get_review(session, review.id, user)
+    except HTTPException as exc:
+        outcome = "rejected" if exc.status_code//100 == 4 else "error"
+        REVIEWS_SUBMITTED.labels(outcome=outcome).inc()
+        raise
+    except Exception:
+        REVIEWS_SUBMITTED.labels(outcome="error").inc()
+        raise
+    else:
+        REVIEWS_SUBMITTED.labels(outcome="success").inc()
+        return output
 
 
 async def change_review(

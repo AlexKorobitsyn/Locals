@@ -15,6 +15,10 @@ spec:
   template:
     metadata:
       labels: {app: app}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
