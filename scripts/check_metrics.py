@@ -9,6 +9,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import wave
+from prometheus_client import Counter
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -20,7 +21,17 @@ METRICS = (
     "locals_review_submitted_total",
 )
 
+PROBE_CHECKS = Counter(
+    "locals_probe_checks_total",
+    "Completed scenario checks by result",
+    labelnames=["scenario", "result"],
+)
+
+
+
 def main():
+    for result in ("success", "failure"):
+        PROBE_CHECKS.labels(scenario="login", result=result)
     p = argparse.ArgumentParser()
     p.add_argument("--api", default="http://localhost:18000")
     p.add_argument("--vm", default="http://localhost:8428")
@@ -35,7 +46,7 @@ def main():
     def check(cond, msg):
         if not cond:
             raise RuntimeError(msg)
-    def req(path, method="GET", obj=None, data=None, ctype=None):
+    def req(path, method="GET", obj=None, data=None, ctype=None, timeout=30):
         hdrs = {}
         if tok:
             hdrs["Authorization"] = "Bearer " + tok
@@ -46,12 +57,47 @@ def main():
             hdrs["Content-Type"] = ctype
         r = urllib.request.Request(args.api + path, data=data, headers=hdrs, method=method)
         try:
-            with urllib.request.urlopen(r, timeout=30) as resp:
+            with urllib.request.urlopen(r, timeout=timeout) as resp:
                 body, code = resp.read(), resp.status
         except urllib.error.HTTPError as exc:
             raise RuntimeError(f"{method} {path}: HTTP {exc.code}") from None
         log(f"{method} {path}: {code}")
         return code, json.loads(body) if body else None
+    def probe_login(creds, expected_user_id, limit_seconds=6.0):
+        nonlocal tok
+        tok = None
+        start_at = time.monotonic()
+        deadline = start_at + limit_seconds
+        remaining_seconds = limit_seconds
+        login_result = {
+        "success": False,
+        "duration_seconds": None,
+        "error": None,
+        }
+        try:
+            code, auth = req("/api/v1/auth/login", "POST", creds, timeout=remaining_seconds)
+            remaining_seconds = deadline - time.monotonic()
+            check(remaining_seconds > 0, "Время проверки входа истекло")
+            check(code == 200, "Вход: нужен 200")
+            tok = auth["access_token"]
+            check(isinstance(tok, str) and tok.strip()!="", "Неверный формат токена/ Пустой токен")
+            code, me = req("/api/v1/me", timeout=remaining_seconds)
+            remaining_seconds = deadline - time.monotonic()
+            check(remaining_seconds > 0, "Время проверки входа истекло")
+            check(code==200, "Проверка соответствия аккаунта не прошла: нужен 200")
+            check(me["id"] == expected_user_id, "Не тот профиль")
+        except Exception as exc:
+            log(f"Вход и профиль: Ошибка {exc}")
+            login_result["error"] = str(exc)
+        else:
+            log("Вход и профиль: ок")
+            login_result["success"] = True
+        finally:
+            duration_sec = time.monotonic() - start_at
+            login_result["duration_seconds"] = duration_sec
+            log(f"Проверка login заняла {duration_sec:.3f} сек")
+            log(json.dumps(login_result, ensure_ascii=False))
+        return login_result
     def query(expr):
         qs = urllib.parse.urlencode({"query": expr, "nocache": "1"})
         with urllib.request.urlopen(args.vm + "/api/v1/query?" + qs, timeout=15) as resp:
@@ -99,12 +145,12 @@ def main():
     creds = {"email": f"metrics-{tag}@example.com", "password": secrets.token_urlsafe(24)}
     code, usr = req("/api/v1/auth/register", "POST", {**creds, "display_name": "Проверка метрик " + tag})
     check(code == 201, "Регистрация: нужен 201")
-    code, auth = req("/api/v1/auth/login", "POST", creds)
-    check(code == 200, "Вход: нужен 200")
-    tok = auth["access_token"]
-    _, me = req("/api/v1/me")
-    check(me["id"] == usr["id"], "Не тот профиль")
-    log("Вход и профиль: ок")
+    login_result = probe_login(creds, usr["id"])
+    if login_result["success"]:
+        PROBE_CHECKS.labels(scenario="login", result="success").inc()
+    else:
+        PROBE_CHECKS.labels(scenario="login", result="failure").inc()
+    check(login_result["success"], "Проверка входа не пройдена")
     _, art = req("/api/v1/artists", "POST", {"name": "Metrics demo " + tag})
     _, tr = req("/api/v1/tracks", "POST", {"title": "Metrics demo " + tag, "duration": 1, "artist_ids": [art["id"]]})
     buf = io.BytesIO()
