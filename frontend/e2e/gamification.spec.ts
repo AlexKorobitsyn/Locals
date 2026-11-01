@@ -56,7 +56,7 @@ test('newcomer proposes a venue, owner protects lyrics, admin assigns a level an
   const card = page.locator('article').filter({ hasText: credentials.email });
   await card.getByRole('button', { name: 'Редактировать', exact: true }).click();
   await page.getByRole('combobox', { name: 'Уровень опыта', exact: true }).click();
-  await page.getByRole('option', { name: '9 — Легенда', exact: true }).click();
+  await page.getByRole('option', { name: '9 - Легенда', exact: true }).click();
   await expect(page.getByLabel('Подтверждённый организатор: публикация без очереди')).toBeChecked();
   await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
   await page.getByRole('button', { name: 'Подтвердить', exact: true }).click();
@@ -69,7 +69,7 @@ test('newcomer proposes a venue, owner protects lyrics, admin assigns a level an
   await browser_login(page, credentials.email, credentials.password);
   await page.goto('/progress');
   await expect(page.getByRole('heading', { name: /уровень 9: Легенда/ })).toBeVisible();
-  await expect(page.getByText(/Подтверждённый организатор — публикация/)).toBeVisible();
+  await expect(page.getByText(/Подтверждённый организатор - публикация/)).toBeVisible();
   expect((await request.get('/api/v1/admin/users', { headers })).status()).toBe(401);
   expect((await request.get('/api/v1/admin/users', { headers: fresh })).status()).toBe(403);
   expect(user.id).toBeGreaterThan(0);

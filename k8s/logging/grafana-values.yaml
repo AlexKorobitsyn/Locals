@@ -46,6 +46,16 @@ datasources:
         jsonData:
           maxLines: 1000
           vmuiUrl: http://localhost:19428/select/vmui/
+      - name: VictoriaMetrics
+        uid: locals-victoriametrics
+        type: prometheus
+        access: proxy
+        url: http://vmsingle-victoria-metrics-single-server.default.svc.cluster.local:8428
+        isDefault: false
+        editable: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: 15s
 dashboardProviders:
   dashboardproviders.yaml:
     apiVersion: 1
@@ -58,5 +68,14 @@ dashboardProviders:
         editable: false
         options:
           path: /var/lib/grafana/dashboards/locals
+      - name: slo
+        orgId: 1
+        folder: Locals
+        type: file
+        disableDeletion: true
+        editable: false
+        options:
+          path: /var/lib/grafana/dashboards/slo
 dashboardsConfigMaps:
   locals: locals-logs-dashboard
+  slo: locals-slo-dashboard

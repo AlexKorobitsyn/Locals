@@ -406,7 +406,7 @@ function UserForm({ initial, on_close }: { initial: User; on_close: () => void }
               >
                 {LEVEL_NAMES.map((name, index) => (
                   <option key={index} value={index}>
-                    {index + 1} — {name}
+                    {index + 1} - {name}
                   </option>
                 ))}
               </Select>
@@ -798,7 +798,7 @@ function CommunityAwardEditor({ id }: { id: number }) {
         />
       </label>
       <p className="muted">
-        Для недели выберите понедельник, для месяца — первое число. За один период награда выдаётся
+        Для недели выберите понедельник, для месяца - первое число. За один период награда выдаётся
         один раз.
       </p>
       {confirmation ? (

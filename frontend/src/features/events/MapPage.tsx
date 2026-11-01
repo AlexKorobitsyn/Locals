@@ -169,7 +169,7 @@ export function MapPage() {
               </Select>
             </label>
             <small className="muted">
-              По умолчанию — предстоящие события. Время:{' '}
+              По умолчанию - предстоящие события. Время:{' '}
               {Intl.DateTimeFormat().resolvedOptions().timeZone}.
             </small>
           </>

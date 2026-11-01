@@ -66,12 +66,12 @@ PostgreSQL и MinIO. `COMPOSE_PROFILES=` оставляет их выключе�
 
 `APP_BIND_HOST` и `MINIO_BIND_HOST` по умолчанию `127.0.0.1`. Для публичного
 HTTPS поставить reverse proxy на том же сервере и направить API к локальному
-порту приложения. Управление TLS и доменом — конфигурация выбранного proxy.
+порту приложения. Управление TLS и доменом - конфигурация выбранного proxy.
 MinIO console не является публичным пользовательским API. Для браузера
 `S3_PUBLIC_ENDPOINT_URL` должен указывать на доступный HTTPS-адрес объекта,
 а не на внутреннее имя `storage`. За proxy сохранять host и URI подписанной ссылки.
 
-Для локального MinIO внутренний адрес — `http://storage:9000`, для внешнего S3 —
+Для локального MinIO внутренний адрес - `http://storage:9000`, для внешнего S3 -
 адрес провайдера. `CORS_ORIGINS` задаётся JSON-массивом точных frontend origins,
 например `["https://music.example.com"]`; по умолчанию кросс-доменные обращения
 не разрешены. На одном origin с `/api/v1` через proxy CORS не нужен.
@@ -80,13 +80,13 @@ S3 и MinIO имеют свои отдельные CORS-настройки дл�
 Frontend добавляется вторым Compose-файлом:
 `docker compose -f compose.yaml -f compose.frontend.yaml up -d --build app frontend`.
 Nginx отдаёт SPA и проксирует `/api` в отдельный контейнер app. Внешний порт
-задаётся `FRONTEND_PORT` (по умолчанию 8080), образ — `FRONTEND_IMAGE`.
+задаётся `FRONTEND_PORT` (по умолчанию 8080), образ - `FRONTEND_IMAGE`.
 Для публичного HTTPS направьте TLS reverse proxy на frontend.
 
 `BROWSER_ALLOWED_ORIGINS` задаёт JSON-массив точных origins сайта для браузерных
 login/refresh/logout. Это отдельная проверка CSRF, необходимая и при одном origin.
 В production `BROWSER_COOKIE_SECURE=true` (значение по умолчанию), для локального
-HTTP — false. Refresh хранится в HttpOnly SameSite=Lax cookie; JSON API сохранён.
+HTTP - false. Refresh хранится в HttpOnly SameSite=Lax cookie; JSON API сохранён.
 После изменения backend-авторизации нужен новый образ app, миграции не добавлены.
 Origins сайта также добавляются в настройки S3/MinIO для воспроизведения медиа.
 
@@ -139,7 +139,7 @@ Runtime `RELEASE_ID` Compose не подменяет: это метаданны�
 5. Проверить публичный HTTPS `/api/v1/health/ready`, login/logout, каталог,
    рекомендации, upload и браузерное воспроизведение через S3. Затем открыть трафик.
 
-Команды с placeholders — шаблоны, а не готовые идентификаторы релиза.
+Команды с placeholders - шаблоны, а не готовые идентификаторы релиза.
 Переменные не передаются через shell `source`, Compose читает env-файл сам.
 Скрипт не меняет env-файл и требует digest; фиксировать выбранный `APP_IMAGE`
 в конфигурации релиза нужно отдельно, чтобы последующие ручные команды также
@@ -183,5 +183,5 @@ python -m pytest -q --strict-markers
 В CI эти ресурсы одноразовые и полный набор integration-проверок обязателен.
 
 Кэш результатов рекомендаций и workers в этой версии не добавлены. Конкретное
-основание для следующего шага — измеренное время SQL, долгие операции обработки
+основание для следующего шага - измеренное время SQL, долгие операции обработки
 аудио или объём повторных запросов; критерии обсуждаются в recommendations.md.

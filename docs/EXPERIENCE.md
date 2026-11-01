@@ -1,7 +1,7 @@
 # Опыт, предложения и управление
 
 XP и права сотрудников разделены. Девять уровней опыта не назначают moderator или admin.
-`type=user/artist` описывает творчество, `level=green/experienced/moderator/admin` — роль доступа.
+`type=user/artist` описывает творчество, `level=green/experienced/moderator/admin` - роль доступа.
 
 | Уровень | Название | Порог XP | Открытые предложения | Будущие события |
 | --- | --- | ---: | ---: | ---: |
@@ -97,12 +97,12 @@ Moderator и admin не ограничены пользовательскими 
 | Топ рецензентов месяца | 100 | Admin выбирает до 10 участников на календарный месяц |
 | Активная площадка | 30 | Раз в месяц за 5 состоявшихся опубликованных событий с участниками |
 
-У рецензии может быть меньше 200 знаков — она сохраняется, но XP не выдаётся.
+У рецензии может быть меньше 200 знаков - она сохраняется, но XP не выдаётся.
 Удаление и повторное создание оценки, подписки, плейлистового добавления или
 рецензии не сбрасывают ключи начислений. За собственные оценки и рецензии на
 свою музыку наград нет. За вход в приложение XP нет.
 
-Серия — семь последовательных UTC-дней с прослушиванием, награждённой рецензией
+Серия - семь последовательных UTC-дней с прослушиванием, награждённой рецензией
 или принятым предложением. Она удваивает только XP за прослушивания текущего дня,
 а не большие награды. Дни простой авторизации не учитываются.
 Месячный бонус площадки считает события с указанным временем окончания и хотя бы
@@ -151,15 +151,15 @@ docker compose run --rm app python -m APP.create_admin \
 - `POST /contributions`, `GET /contributions`, `GET /me/contributions`.
 - `PUT` / `DELETE /contributions/{id}/vote`.
 - `PUT /contributions/{id}/review` с `decision=approve/reject`, необязательным reason.
-- `DELETE /contributions/{id}` — отзыв автором.
-- `PUT` / `DELETE /events/{id}/attendance` — посещение, отдельно от Favorite.
+- `DELETE /contributions/{id}` - отзыв автором.
+- `PUT` / `DELETE /events/{id}/attendance` - посещение, отдельно от Favorite.
 - `GET /admin/users`, `PATCH /admin/users/{id}`, `PUT /admin/users/{id}/level`.
 - `PUT /admin/users/{id}/experience` с `tier=0..8` (уровень сайта равен `tier+1`).
 - `PUT /admin/users/{id}/scene-verification` с `scene_verified=true/false`.
 - `PUT /admin/users/{id}/status` с `is_active=true/false`.
 - `POST /admin/users/{id}/community-awards` с kind и period (`YYYY-MM-DD`).
-- `GET /admin/profiles`, `PATCH /admin/profiles/{id}` — публичные поля для модерации.
-- `GET /admin/audit` — закрытый аудит admin.
+- `GET /admin/profiles`, `PATCH /admin/profiles/{id}` - публичные поля для модерации.
+- `GET /admin/audit` - закрытый аудит admin.
 
 Все пути имеют префикс `/api/v1`. Добавлены миграции `0005_experience_moderation`
 и `0006_community_xp`. Существующие площадки и события сохраняются опубликованными.

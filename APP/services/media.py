@@ -16,9 +16,9 @@ from PIL import Image, UnidentifiedImageError
 from sqlalchemy import exists, or_, select
 from starlette.concurrency import run_in_threadpool
 
-from APP.core.metrics import PLAYBACK_LINK_REQUESTS
 from APP.core.constants import NAME_MAX_LENGTH, UPLOAD_CHUNK_BYTES
 from APP.core.dependencies import require_owner_or_admin, require_owner_or_privileged
+from APP.core.metrics import PLAYBACK_LINK_REQUESTS
 from APP.models.album import Album
 from APP.models.artist import Artist
 from APP.models.media import Media
@@ -278,6 +278,24 @@ async def accessible_media(session, media_id, user):
     if media is None:
         raise HTTPException(status_code=404, detail="Media not found")
     return media
+
+
+async def delete_media(session, user, media_id, storage):
+    async with session.begin():
+        await lock_user(session, user.id)
+        media = await session.scalar(
+            select(Media).where(Media.id == media_id, Media.user_id == user.id).with_for_update()
+        )
+        if media is None:
+            raise HTTPException(status_code=404, detail="Media not found")
+        references = [(model, model.image_media_id) for model in IMAGE_TARGETS.values()]
+        references.append((Track, Track.audio_media_id))
+        for model, column in references:
+            if await session.scalar(select(model.id).where(column == media_id).limit(1)) is not None:
+                raise HTTPException(status_code=409, detail="Media is attached")
+        await run_in_threadpool(storage.delete, media.object_key)
+        record_event(session, user.id, "media_deleted", "media", media.id, public=False)
+        await session.delete(media)
 
 
 async def playback(session, track_id, storage, settings):

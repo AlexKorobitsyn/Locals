@@ -7,7 +7,7 @@ data:
   locals-logs.json: |
     {
       "uid": "locals-logs",
-      "title": "Locals — VictoriaLogs",
+      "title": "Locals - VictoriaLogs",
       "tags": [
         "locals",
         "victorialogs"

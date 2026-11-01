@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: prober-state, namespace: locals}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: prober, namespace: locals}
+spec:
+  selector: {app: prober}
+  ports: [{name: metrics, port: 9105, targetPort: metrics}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: prober, namespace: locals}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: prober}
+  template:
+    metadata:
+      labels: {app: prober}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9105"
+        prometheus.io/path: /metrics
+    spec:
+      terminationGracePeriodSeconds: 120
+      securityContext: {runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001}
+      containers:
+        - name: prober
+          image: locals-prober:k8s
+          imagePullPolicy: Never
+          args: [python, prober.py, --state, /etc/prober/config.json, --pending, /var/lib/prober/pending.json]
+          env:
+            - {name: PROBE_API_URL, value: "http://frontend"}
+            - {name: PROBE_STORAGE_URL, value: "http://storage:9000"}
+          ports: [{name: metrics, containerPort: 9105}]
+          volumeMounts:
+            - {name: config, mountPath: /etc/prober, readOnly: true}
+            - {name: state, mountPath: /var/lib/prober}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {cpu: 250m, memory: 128Mi}
+          readinessProbe:
+            httpGet: {path: /metrics, port: metrics}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /metrics, port: metrics}
+            periodSeconds: 15
+      volumes:
+        - name: config
+          secret: {secretName: locals-prober, defaultMode: 288}
+        - name: state
+          persistentVolumeClaim: {claimName: prober-state}

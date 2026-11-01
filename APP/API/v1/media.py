@@ -5,15 +5,21 @@ from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import RedirectResponse
 
-from APP.core.metrics import AUDIO_UPLOADS
 from APP.core.config import SettingsDependency
 from APP.core.db import SessionDependency
 from APP.core.dependencies import CurrentUserDependency, OptionalUserDependency
+from APP.core.metrics import AUDIO_UPLOADS
 from APP.core.storage import StorageDependency
 from APP.models.media import Media
 from APP.schemas.media import MediaAttach, MediaOut, PlaybackOut
 from APP.schemas.pagination import EntityId
-from APP.services.media import accessible_media, attach_media, playback, upload_media
+from APP.services.media import (
+    accessible_media,
+    attach_media,
+    delete_media,
+    playback,
+    upload_media,
+)
 
 router = APIRouter(tags=["media"])
 
@@ -78,6 +84,17 @@ async def content(
     media = await accessible_media(session, media_id, user)
     url = await run_in_threadpool(storage.url, media.object_key, media.content_type)
     return RedirectResponse(url, status_code=307, headers={"Cache-Control": "no-store"})
+
+
+@router.delete("/media/{media_id}", status_code=204)
+async def remove_media(
+    media_id: EntityId,
+    session: SessionDependency,
+    user: CurrentUserDependency,
+    storage: StorageDependency,
+):
+    await delete_media(session, user, media_id, storage)
+    return Response(status_code=204)
 
 
 @router.put("/images/{target_type}/{target_id}", status_code=204)

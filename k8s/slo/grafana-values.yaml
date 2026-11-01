@@ -1,0 +1,60 @@
+replicas: 1
+deploymentStrategy:
+  type: Recreate
+persistence:
+  enabled: true
+  size: 1Gi
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: '1'
+    memory: 1Gi
+readinessProbe:
+  timeoutSeconds: 5
+livenessProbe:
+  timeoutSeconds: 5
+initChownData:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 100m
+      memory: 32Mi
+grafana.ini:
+  analytics:
+    reporting_enabled: false
+    check_for_updates: false
+  log:
+    mode: console
+    format: json
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    - name: VictoriaMetrics
+      uid: locals-victoriametrics
+      type: prometheus
+      access: proxy
+      url: http://vmsingle-victoria-metrics-single-server.default.svc.cluster.local:8428
+      isDefault: true
+      editable: false
+      jsonData:
+        httpMethod: POST
+        timeInterval: 15s
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: slo
+      orgId: 1
+      folder: Locals
+      type: file
+      disableDeletion: true
+      editable: false
+      options:
+        path: /var/lib/grafana/dashboards/slo
+dashboardsConfigMaps:
+  slo: locals-slo-dashboard

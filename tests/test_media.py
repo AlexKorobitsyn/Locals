@@ -336,3 +336,23 @@ def test_body_limit_handles_chunked_without_content_length(settings):
     }
     asyncio.run(UploadLimitMiddleware(endpoint, settings)(scope, receive, send))
     assert messages[0]["status"] == 413
+
+def test_delete_media_owner_unattached_and_references(api_client, music, account, storage):
+    _, headers, _, _, tracks = music
+    _, other = account("media-delete-other")
+    media = result(api_client.post("/api/v1/media/audio", headers=headers, files={"file": ("slo-probe.wav", wav_bytes(), "audio/wav")}), 201)
+    path = f"/api/v1/media/{media['id']}"
+    assert api_client.delete(path).status_code == 401
+    assert api_client.delete(path, headers=other).status_code == 404
+    assert len(storage.objects) == 1
+    track_id = tracks[0]["id"]
+    result(api_client.put(f"/api/v1/tracks/{track_id}/audio", headers=headers, json={"media_id": media["id"]}), 204)
+    assert api_client.delete(path, headers=headers).status_code == 409
+    unattached = result(api_client.post("/api/v1/media/audio", headers=headers, files={"file": ("slo-probe.wav", wav_bytes(), "audio/wav")}), 201)
+    path = f"/api/v1/media/{unattached['id']}"
+    assert len(storage.objects) == 2
+    result(api_client.delete(path, headers=headers), 204)
+    assert len(storage.objects) == 1
+    assert api_client.get(path, headers=headers).status_code == 404
+    assert api_client.delete(path, headers=headers).status_code == 404
+    assert result(api_client.get(f"/api/v1/tracks/{track_id}"))["audio_media_id"] == media["id"]

@@ -298,7 +298,7 @@ async def claim_milestones(session, actor, settings):
                 )
             )
         ).all():
-            # Месячный бонус — за состоявшиеся события с реальными участниками.
+            # Месячный бонус - за состоявшиеся события с реальными участниками.
             month = func.date_trunc("month", Event.stop_at)
             completed = (
                 await session.execute(

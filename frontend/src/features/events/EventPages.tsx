@@ -180,7 +180,7 @@ export function ScenePage({ venues = false }: { venues?: boolean }) {
               </Select>
             </label>
             <small className="muted">
-              Даты и время — в часовом поясе вашего устройства:{' '}
+              Даты и время - в часовом поясе вашего устройства:{' '}
               {Intl.DateTimeFormat().resolvedOptions().timeZone}.
             </small>
             {types.isError && <ErrorState error={types.error} retry={() => void types.refetch()} />}
@@ -341,7 +341,7 @@ export function EventPage() {
           {event.stop_at && (
             <>
               {' '}
-              — <time dateTime={event.stop_at}>{format_datetime(event.stop_at)}</time>
+              - <time dateTime={event.stop_at}>{format_datetime(event.stop_at)}</time>
             </>
           )}
         </p>

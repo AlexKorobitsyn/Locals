@@ -261,7 +261,7 @@ async def locked_proposal(session, proposal_id):
     )
     if author_id is None:
         raise HTTPException(status_code=404, detail="Contribution not found")
-    # Всегда автор, затем предложение и цель — как при создании правки.
+    # Всегда автор, затем предложение и цель - как при создании правки.
     from APP.services.ratings import lock_user
 
     await lock_user(session, author_id)

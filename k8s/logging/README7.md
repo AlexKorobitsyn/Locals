@@ -37,7 +37,7 @@ helm list -A
 - VictoriaLogs Ready; её PVC имеет статус `Bound`.
 - У collector в Minikube `DESIRED=1` и `READY=1`.
 - В `monitoring` работают `grafana`, `vmalert`, `alertmanager`, их Pod Ready.
-- Job `migrate` и `storage-init` могут быть `Completed` — это нормально.
+- Job `migrate` и `storage-init` могут быть `Completed` - это нормально.
 
 После запуска Minikube дай DNS и приложениям восстановиться. Готовность бонусных сервисов можно дождаться командами:
 
@@ -59,31 +59,31 @@ kubectl -n monitoring rollout status deployment/alertmanager --timeout=180s
 
 Оставь пять команд работающими, **каждую в отдельной вкладке терминала**. Ещё один терминал понадобится для `curl` и остальных команд.
 
-**Терминал 1 — приложение:**
+**Терминал 1 - приложение:**
 
 ```bash
 kubectl -n locals port-forward service/frontend 8080:80
 ```
 
-**Терминал 2 — VictoriaLogs и vmui:**
+**Терминал 2 - VictoriaLogs и vmui:**
 
 ```bash
 kubectl -n victoria-logs port-forward service/victoria-logs-single-server 19428:9428
 ```
 
-**Терминал 3 — Grafana:**
+**Терминал 3 - Grafana:**
 
 ```bash
 kubectl -n monitoring port-forward service/grafana 13000:80
 ```
 
-**Терминал 4 — vmalert:**
+**Терминал 4 - vmalert:**
 
 ```bash
 kubectl -n monitoring port-forward service/vmalert 18880:8880
 ```
 
-**Терминал 5 — Alertmanager:**
+**Терминал 5 - Alertmanager:**
 
 ```bash
 kubectl -n monitoring port-forward service/alertmanager 19093:9093
@@ -105,7 +105,7 @@ Port-forward должен показывать `Forwarding from ...`. При з�
 
 ## 3. Войти в Grafana и повторить скриншот datasource
 
-Открой <http://localhost:13000>. Логин — **admin**. В рабочем терминале получи пароль:
+Открой <http://localhost:13000>. Логин - **admin**. В рабочем терминале получи пароль:
 
 ```bash
 kubectl -n monitoring get secret grafana \
@@ -126,7 +126,7 @@ kubectl -n monitoring get secret grafana \
 
 ## 4. Посмотреть dashboard Grafana
 
-Открой **Dashboards → Locals → Locals — VictoriaLogs** или прямой адрес:
+Открой **Dashboards → Locals → Locals - VictoriaLogs** или прямой адрес:
 <http://localhost:13000/d/locals-logs>.
 
 Выбери **Last 15 minutes** и нажми **Refresh**. Есть четыре панели:
@@ -134,11 +134,11 @@ kubectl -n monitoring get secret grafana \
 | Панель | Что показывает |
 | --- | --- |
 | HTTP-запросы FastAPI | Записи `APP.http` из VictoriaLogs |
-| Ответы 404 за пять минут | Число записей с `status=404`; порог алерта — 3 |
+| Ответы 404 за пять минут | Число записей с `status=404`; порог алерта - 3 |
 | p95 времени HTTP-ответа | 95-й перцентиль `duration_ms`, в миллисекундах |
 | Количество записей по сервису и уровню | Распределение записей backend/frontend |
 
-До теста счётчик 404 может быть **0**, а алерт — **Inactive**. Это здоровое исходное состояние. Если ты недавно уже вызывал 404, счётчик может быть больше нуля; для чистого повторения дождись пяти минут после последнего такого запроса. Значения на dashboard меняются вместе с временным окном.
+До теста счётчик 404 может быть **0**, а алерт - **Inactive**. Это здоровое исходное состояние. Если ты недавно уже вызывал 404, счётчик может быть больше нуля; для чистого повторения дождись пяти минут после последнего такого запроса. Значения на dashboard меняются вместе с временным окном.
 
 Ниже создадим 404, после чего вернёмся сюда для скриншота dashboard.
 
@@ -179,7 +179,7 @@ done
 kubectl -n locals logs deployment/app --tail=20
 ```
 
-У соответствующих HTTP-записей должны быть `status: 404`, `request_id`, `path`, `duration_ms`. В VictoriaLogs значения этих полей могут отображаться строками — например, `"status":"404"`.
+У соответствующих HTTP-записей должны быть `status: 404`, `request_id`, `path`, `duration_ms`. В VictoriaLogs значения этих полей могут отображаться строками - например, `"status":"404"`.
 
 ## 6. Увидеть Pending → Firing и получение алерта
 
@@ -204,7 +204,7 @@ _time:5m kubernetes.pod_namespace:="locals" logger:="APP.http" status:="404"
 3. Если условие сохраняется 30 секунд, правило становится **Firing**.
 4. vmalert отправляет алерт в Alertmanager.
 
-Оценка идёт каждые 15 секунд с задержкой данных 5 секунд. Ожидай примерно минуту после доставки логов; переход может произойти чуть позже из-за времени сбора и обработки. Pending можно пропустить между обновлениями страницы — Firing после него является ожидаемым результатом.
+Оценка идёт каждые 15 секунд с задержкой данных 5 секунд. Ожидай примерно минуту после доставки логов; переход может произойти чуть позже из-за времени сбора и обработки. Pending можно пропустить между обновлениями страницы - Firing после него является ожидаемым результатом.
 
 На странице активного алерта должны быть:
 
@@ -227,7 +227,7 @@ curl -fsS http://localhost:18880/api/v1/alerts | python3 -m json.tool
 curl -fsS http://localhost:19093/api/v2/alerts | python3 -m json.tool
 ```
 
-В первом ответе проверяй `health: "ok"` и пустой `lastError`. Во втором у активного алерта будет `state: "firing"`, в третьем — `status.state: "active"`.
+В первом ответе проверяй `health: "ok"` и пустой `lastError`. Во втором у активного алерта будет `state: "firing"`, в третьем - `status.state: "active"`.
 
 Вернись в dashboard Grafana и нажми **Refresh**. Счётчик 404 должен быть не меньше 3. Сделай скриншот, как
 [06-grafana-dashboard.png](screenshots/06-grafana-dashboard.png).
@@ -245,7 +245,7 @@ curl -fsS http://localhost:19093/api/v2/alerts | python3 -m json.tool
 
 Запросы содержат `_time:15m`. Уведомление **Time range overridden by query filter** ожидаемо: время задаётся самим запросом. Если используешь ручной выбор диапазона, выбери Last 15 minutes.
 
-### Скриншот 01 — сырые записи
+### Скриншот 01 - сырые записи
 
 ```text
 _time:15m kubernetes.pod_namespace:="locals" kubernetes.container_name:="backend"
@@ -253,7 +253,7 @@ _time:15m kubernetes.pod_namespace:="locals" kubernetes.container_name:="backend
 
 Ожидаются JSON-записи с `_time`, `_msg`, `level`, `service.name` и Kubernetes-метаданными. У записей `APP.http` есть HTTP-поля. Пример: [01-raw.png](screenshots/01-raw.png).
 
-### Скриншот 02 — фильтр по статусу
+### Скриншот 02 - фильтр по статусу
 
 ```text
 _time:15m kubernetes.pod_namespace:="locals" kubernetes.container_name:="backend" status:="404"
@@ -261,7 +261,7 @@ _time:15m kubernetes.pod_namespace:="locals" kubernetes.container_name:="backend
 
 Ожидаются записи запросов к `/api/v1/logs-demo-missing`. Пример: [02-filter.png](screenshots/02-filter.png).
 
-### Скриншот 03 — группировка и count
+### Скриншот 03 - группировка и count
 
 ```text
 _time:15m kubernetes.pod_namespace:="locals" kubernetes.container_name:in(backend,nginx)
@@ -270,7 +270,7 @@ _time:15m kubernetes.pod_namespace:="locals" kubernetes.container_name:in(backen
 
 Ожидаются строки с сервисом, уровнем и `logs_count`. Строка без имени сервиса возможна для служебных текстовых startup-логов Nginx. Пример: [03-stats.png](screenshots/03-stats.png).
 
-### Скриншот 04 — top путей
+### Скриншот 04 - top путей
 
 ```text
 _time:15m kubernetes.pod_namespace:="locals" logger:="APP.http"
@@ -279,7 +279,7 @@ _time:15m kubernetes.pod_namespace:="locals" logger:="APP.http"
 
 Ожидаются пути и число записей `hits`. Проверки `/health/ready` и `/health/live` часто лидируют: их вызывает Kubernetes. Пример: [04-top.png](screenshots/04-top.png).
 
-У агрегированных результатов может не быть `_time` и `_msg` — там вычисленные поля. Во вкладке Group это иногда выглядит как `timestamp missing` или пустое сообщение; переключись на JSON, чтобы увидеть значения.
+У агрегированных результатов может не быть `_time` и `_msg` - там вычисленные поля. Во вкладке Group это иногда выглядит как `timestamp missing` или пустое сообщение; переключись на JSON, чтобы увидеть значения.
 
 Если цифры отличаются от сохранённых скриншотов, это нормально: данные живые, probes выполняются постоянно. Повторный запуск цикла `curl` добавляет ещё три записи, а не обнуляет предыдущие.
 

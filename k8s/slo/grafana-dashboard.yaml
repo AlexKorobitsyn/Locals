@@ -1,0 +1,1707 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: locals-slo-dashboard, namespace: monitoring}
+data:
+  locals-slo.json: |
+    {
+      "uid": "locals-slo",
+      "title": "Locals - SLI, SLO, SLA",
+      "tags": [
+        "locals",
+        "slo"
+      ],
+      "schemaVersion": 39,
+      "version": 3,
+      "editable": false,
+      "timezone": "browser",
+      "refresh": "15s",
+      "time": {
+        "from": "now-15m",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Краткая сводка про дашборд",
+          "type": "text",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 3
+          },
+          "options": {
+            "mode": "markdown",
+            "content": "SLO ≥99,5%, SLA ≥99,0% всех трёх сценариев."
+          }
+        },
+        {
+          "id": 2,
+          "title": "Пробер доступен для сбора",
+          "description": "",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 3,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) or vector(0)",
+              "legendFormat": "up",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "false",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "true",
+                      "color": "green"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 3,
+          "title": "Сколько прошло с последней проверки, сек",
+          "description": "",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 3,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\"})",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 4,
+          "title": "Последняя проверка успешна",
+          "description": "",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 3,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (scenario) (locals_probe_success{job=\"locals-pods\",pod=~\"prober-.*\"})",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "false",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "true",
+                      "color": "green"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 5,
+          "title": "Ресурсы в очереди очистки",
+          "description": "",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 3,
+            "w": 6,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(locals_probe_cleanup_pending{job=\"locals-pods\",pod=~\"prober-.*\"})",
+              "legendFormat": "Очередь",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 22,
+          "title": "Входы за выбранный период",
+          "description": "Число операций приложения за период, выбранный справа сверху. Учитываются запросы пробера и пользователей; перезапуски счётчиков обрабатываются через increase. Пробер входит отдельно для каждого из трёх сценариев, поэтому в нормальном цикле выполняет три входа.",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 7,
+            "w": 8,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(locals_login_operations_total{job=\"locals-pods\",outcome=\"success\"}[$__range]))",
+              "legendFormat": "Успешно",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            },
+            {
+              "refId": "B",
+              "expr": "sum(increase(locals_login_operations_total{job=\"locals-pods\",outcome=\"error\"}[$__range]))",
+              "legendFormat": "Ошибки",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            },
+            {
+              "refId": "C",
+              "expr": "sum(increase(locals_login_operations_total{job=\"locals-pods\",outcome=\"rejected\"}[$__range]))",
+              "legendFormat": "Отклонено",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "min": 0,
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Успешно"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Ошибки"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Отклонено"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        },
+        {
+          "id": 23,
+          "title": "Загрузки аудио за выбранный период",
+          "description": "Число операций приложения за период, выбранный справа сверху. Учитываются запросы пробера и пользователей; перезапуски счётчиков обрабатываются через increase. Это число загрузок, а не количество файлов, оставшихся в хранилище: пробер удаляет тестовые WAV после проверки.",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 7,
+            "w": 8,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(locals_audio_uploads_total{job=\"locals-pods\",outcome=\"success\"}[$__range]))",
+              "legendFormat": "Успешно",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            },
+            {
+              "refId": "B",
+              "expr": "sum(increase(locals_audio_uploads_total{job=\"locals-pods\",outcome=\"error\"}[$__range]))",
+              "legendFormat": "Ошибки",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            },
+            {
+              "refId": "C",
+              "expr": "sum(increase(locals_audio_uploads_total{job=\"locals-pods\",outcome=\"rejected\"}[$__range]))",
+              "legendFormat": "Отклонено",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "min": 0,
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Успешно"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Ошибки"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Отклонено"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        },
+        {
+          "id": 24,
+          "title": "Рецензии за выбранный период",
+          "description": "Число операций приложения за период, выбранный справа сверху. Учитываются запросы пробера и пользователей; перезапуски счётчиков обрабатываются через increase.",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 7,
+            "w": 8,
+            "h": 4
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(locals_review_submitted_total{job=\"locals-pods\",outcome=\"success\"}[$__range]))",
+              "legendFormat": "Успешно",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            },
+            {
+              "refId": "B",
+              "expr": "sum(increase(locals_review_submitted_total{job=\"locals-pods\",outcome=\"error\"}[$__range]))",
+              "legendFormat": "Ошибки",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            },
+            {
+              "refId": "C",
+              "expr": "sum(increase(locals_review_submitted_total{job=\"locals-pods\",outcome=\"rejected\"}[$__range]))",
+              "legendFormat": "Отклонено",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "decimals": 0,
+              "min": 0,
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Успешно"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "green"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Ошибки"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "red"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Отклонено"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "yellow"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value",
+            "graphMode": "none"
+          }
+        },
+        {
+          "id": 6,
+          "title": "Вход: SLI за 5 минут и пороги",
+          "description": "Короткое окно для демонстрации, не итог SLA за 30 дней. Неверные данные, таймаут, 4xx/5xx и превышение времени считаются ошибкой.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 11,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"login\",result=\"success\"}[5m])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"login\"}[5m]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"login\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1)",
+              "legendFormat": "SLI пробера",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "100 * max(locals_probe_slo_ratio{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"login\"})",
+              "legendFormat": "SLO 99,5%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "C",
+              "expr": "100 * max(locals_probe_sla_ratio{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"login\"})",
+              "legendFormat": "SLA 99,0%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "SLO.*|SLA.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        6,
+                        4
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "Вход: бизнес-метрика, SLI за 5 минут",
+          "description": "Вспомогательный SLI обработанных операций. Ожидаемые rejected исключены; полную недоступность и неожиданные отказы с правильными данными учитывает пробер.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 19,
+            "w": 8,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "100 * sum(increase(locals_login_operations_total{job=\"locals-pods\",outcome=\"success\"}[5m])) / sum(increase(locals_login_operations_total{job=\"locals-pods\",outcome=~\"success|error\"}[5m]))",
+              "legendFormat": "Успех / (успех + ошибка)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "vector(99.5)",
+              "legendFormat": "SLO 99,5%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 8,
+          "title": "Вход: исходные операции/с",
+          "description": "",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 25,
+            "w": 8,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(locals_login_operations_total{job=\"locals-pods\"}[1m])) by (outcome)",
+              "legendFormat": "{{outcome}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 9,
+          "title": "Аудио: SLI за 5 минут и пороги",
+          "description": "Короткое окно для демонстрации, не итог SLA за 30 дней. Неверные данные, таймаут, 4xx/5xx и превышение времени считаются ошибкой.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 11,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"audio_upload\",result=\"success\"}[5m])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"audio_upload\"}[5m]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"audio_upload\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1)",
+              "legendFormat": "SLI пробера",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "100 * max(locals_probe_slo_ratio{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"audio_upload\"})",
+              "legendFormat": "SLO 99,5%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "C",
+              "expr": "100 * max(locals_probe_sla_ratio{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"audio_upload\"})",
+              "legendFormat": "SLA 99,0%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "SLO.*|SLA.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        6,
+                        4
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 10,
+          "title": "Аудио: бизнес-метрика, SLI за 5 минут",
+          "description": "Вспомогательный SLI обработанных операций. Ожидаемые rejected исключены; полную недоступность и неожиданные отказы с правильными данными учитывает пробер.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 19,
+            "w": 8,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "100 * sum(increase(locals_audio_uploads_total{job=\"locals-pods\",outcome=\"success\"}[5m])) / sum(increase(locals_audio_uploads_total{job=\"locals-pods\",outcome=~\"success|error\"}[5m]))",
+              "legendFormat": "Успех / (успех + ошибка)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "vector(99.5)",
+              "legendFormat": "SLO 99,5%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 11,
+          "title": "Аудио: исходные операции/с",
+          "description": "",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 25,
+            "w": 8,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(locals_audio_uploads_total{job=\"locals-pods\"}[1m])) by (outcome)",
+              "legendFormat": "{{outcome}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 12,
+          "title": "Рецензия: SLI за 5 минут и пороги",
+          "description": "Короткое окно для демонстрации, не итог SLA за 30 дней. Неверные данные, таймаут, 4xx/5xx и превышение времени считаются ошибкой.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 11,
+            "w": 8,
+            "h": 8
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"review\",result=\"success\"}[5m])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"review\"}[5m]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"review\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1)",
+              "legendFormat": "SLI пробера",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "100 * max(locals_probe_slo_ratio{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"review\"})",
+              "legendFormat": "SLO 99,5%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "C",
+              "expr": "100 * max(locals_probe_sla_ratio{job=\"locals-pods\",pod=~\"prober-.*\",scenario=\"review\"})",
+              "legendFormat": "SLA 99,0%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "SLO.*|SLA.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        6,
+                        4
+                      ]
+                    }
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 13,
+          "title": "Рецензия: бизнес-метрика, SLI за 5 минут",
+          "description": "Вспомогательный SLI обработанных операций. Ожидаемые rejected исключены; полную недоступность и неожиданные отказы с правильными данными учитывает пробер.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 19,
+            "w": 8,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "100 * sum(increase(locals_review_submitted_total{job=\"locals-pods\",outcome=\"success\"}[5m])) / sum(increase(locals_review_submitted_total{job=\"locals-pods\",outcome=~\"success|error\"}[5m]))",
+              "legendFormat": "Успех / (успех + ошибка)",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "vector(99.5)",
+              "legendFormat": "SLO 99,5%",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 14,
+          "title": "Рецензия: исходные операции/с",
+          "description": "",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 25,
+            "w": 8,
+            "h": 6
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(rate(locals_review_submitted_total{job=\"locals-pods\"}[1m])) by (outcome)",
+              "legendFormat": "{{outcome}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 15,
+          "title": "SLI за скользящие 30 дней (по накопленным данным)",
+          "description": "До накопления 30 дней это предварительная оценка. Пропуски наблюдений не доказывают доступность.",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 31,
+            "w": 8,
+            "h": 5
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",result=\"success\"}[30d])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\"}[30d]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1)",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "max": 100
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 16,
+          "title": "Предварительно: SLO за 30 дней выполнен",
+          "description": "",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 8,
+            "y": 31,
+            "w": 8,
+            "h": 5
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "((100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",result=\"success\"}[30d])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\"}[30d]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1)) >= bool 99.5",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "false",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "true",
+                      "color": "green"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 17,
+          "title": "Предварительно: Общий SLA за 30 дней выполнен",
+          "description": "",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 16,
+            "y": 31,
+            "w": 8,
+            "h": 5
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "(min((100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",result=\"success\"}[30d])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\"}[30d]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1))) >= bool 99 and on () (count((100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",result=\"success\"}[30d])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\"}[30d]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1)) == 3)",
+              "legendFormat": "Все три сценария",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "false",
+                      "color": "red"
+                    },
+                    "1": {
+                      "text": "true",
+                      "color": "green"
+                    }
+                  }
+                }
+              ]
+            },
+            "overrides": []
+          },
+          "options": {
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value_and_name",
+            "colorMode": "value"
+          }
+        },
+        {
+          "id": 18,
+          "title": "Длительность сценариев и допустимое время",
+          "description": "",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 36,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "max by (scenario) (locals_probe_duration_seconds{job=\"locals-pods\",pod=~\"prober-.*\"})",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "max by (scenario) (locals_probe_limit_seconds{job=\"locals-pods\",pod=~\"prober-.*\"})",
+              "legendFormat": "Порог {{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 19,
+          "title": "Неуспешные проверки за 5 минут",
+          "description": "",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 36,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",result=\"failure\"}[5m]))",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 20,
+          "title": "Остаток бюджета ошибок SLO, %",
+          "description": "100% - бюджет не потрачен; 0% - SLO достиг границы; отрицательное значение - SLO нарушен.",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 43,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "100 * (1 - (100 - ((100 * sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\",result=\"success\"}[30d])) / sum by (scenario) (increase(locals_probe_checks_total{job=\"locals-pods\",pod=~\"prober-.*\"}[30d]))) and on (scenario) (time() - max by (scenario) (locals_probe_last_completed_timestamp_seconds{job=\"locals-pods\",pod=~\"prober-.*\"}) < 120) and on () (max(up{job=\"locals-pods\",pod=~\"prober-.*\"}) == 1))) / 0.5)",
+              "legendFormat": "{{scenario}}",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 21,
+          "title": "Ошибки очистки за 5 минут",
+          "description": "",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "locals-victoriametrics"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 43,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum(increase(locals_probe_cleanup_errors_total{job=\"locals-pods\",pod=~\"prober-.*\"}[5m]))",
+              "legendFormat": "Ошибки",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "locals-victoriametrics"
+              },
+              "range": true,
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Нет данных",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 0,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        }
+      ]
+    }
