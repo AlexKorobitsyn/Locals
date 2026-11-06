@@ -129,11 +129,11 @@ curl -fsS http://localhost:19093/api/v2/alerts
 VictoriaMetrics:
 
 ```bash
-helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts/ --version 0.49.0 -n default -f guide-vmsingle-values.yaml --wait
+helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts/ --version 0.49.0 -n monitoring --create-namespace -f guide-vmsingle-values.yaml --wait
 ```
 
 ```bash
-kubectl -n default port-forward svc/vmsingle-victoria-metrics-single-server 8428:8428
+kubectl -n monitoring port-forward svc/vmsingle-victoria-metrics-single-server 8428:8428
 ```
 
 Как проверить?:
@@ -141,3 +141,7 @@ kubectl -n default port-forward svc/vmsingle-victoria-metrics-single-server 8428
 ```bash
 python3 scripts/check_metrics.py
 ```
+
+VictoriaMetrics работает в `monitoring`, приложение и PostgreSQL — в `locals`. Адрес datasource Grafana: `http://vmsingle-victoria-metrics-single-server.monitoring.svc.cluster.local:8428`. После переноса VictoriaMetrics 06.11.2026 собирается новая история; прежняя история не импортируется. Старый port-forward нужно остановить и запустить приведённую выше команду заново.
+
+В `guide-vmsingle-values.yaml` оставлен фильтр `default;kubernetes;https`: он выбирает сервис Kubernetes API, который находится в namespace `default`, и не задаёт namespace VictoriaMetrics.

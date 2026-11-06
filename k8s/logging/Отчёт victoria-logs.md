@@ -2,6 +2,8 @@
 
 Я сделал логирование через single node victoria-logs , collector тоже от victoria-logs, аллертирование vmalert с Менеджером куда приходит Алёрт, интегрировал модуль grafana и всё в одном кластере с моим Locals. Настроил выдачу json с backend-а и frontend - а Выбран официальный collector развёрнутый как DaemonSet. Он читает логи контейнеров на узле, разбирает JSON, добавляет метаданные Pod и отправляет записи в VictoriaLogs.
 
+Для задания по метрикам VictoriaMetrics размещена в namespace `monitoring` вместе с Grafana, vmalert и Alertmanager. Адрес datasource: `http://vmsingle-victoria-metrics-single-server.monitoring.svc.cluster.local:8428`. Установка и port-forward описаны в [README-victoria.md](README-victoria.md), описание метрик — в [ОтчётMetrics.md](../../ОтчётMetrics.md). Приведённые ниже скриншоты относятся к ранее выполненной демонстрации логов.
+
 ### 1. Сырые записи за последне 15 минут
 
 Команда:

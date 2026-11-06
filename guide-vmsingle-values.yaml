@@ -45,6 +45,7 @@ server:
                     __meta_kubernetes_endpoint_port_name,
                 ]
               action: keep
+              # Это namespace сервиса Kubernetes API, а не VictoriaMetrics.
               regex: default;kubernetes;https
         - job_name: "kubernetes-nodes"
           scheme: https

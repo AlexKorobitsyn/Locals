@@ -118,7 +118,7 @@ def main():
     log("Locals: проверка метрик")
     log(dt)
     for cmd in (
-        ["kubectl", "-n", "default", "get", "pods,svc", "-l", "app.kubernetes.io/instance=vmsingle"],
+        ["kubectl", "-n", "monitoring", "get", "pods,svc", "-l", "app.kubernetes.io/instance=vmsingle"],
         ["kubectl", "-n", "locals", "get", "pods,svc"],
     ):
         log("$ " + " ".join(cmd))

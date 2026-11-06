@@ -1,0 +1,26 @@
+Проверка переноса VictoriaMetrics в namespace monitoring
+2026-11-06T09:42:00+05:00
+Проверка только чтением; бизнес-операции не выполнялись.
+
+up: db-0 = 1
+up: app-5ddd868b84-mm5hl = 1
+pg_up = 1
+python_info: есть (1 рядов)
+process_resident_memory_bytes: есть (1 рядов)
+monitoring_locals_http_requests_total: есть (4 рядов)
+locals_login_operations_total: отсутствует в работающем backend
+locals_audio_uploads_total: отсутствует в работающем backend
+locals_playback_link_requests_total: отсутствует в работающем backend
+locals_review_submitted_total: отсутствует в работающем backend
+
+Проверено напрямую в контейнере backend: /app/APP/core/metrics.py отсутствует.
+В репозитории этот файл есть: запущен образ без текущих бизнес-метрик.
+В locals также отсутствует Deployment prober. Для задания по алертам потребуется обновить backend и развернуть пробер.
+
+Grafana: datasource locals-victoriametrics указывает на monitoring.
+Grafana datasource health: OK — Successfully queried the Prometheus API.
+Datasource VictoriaLogs сохранён.
+
+Новая VictoriaMetrics использует новый PVC в monitoring; история не импортировалась.
+Прежний PVC в исходном namespace сохранён.
+Миграция и сбор HTTP/runtime/PostgreSQL метрик: OK. Бизнес-метрики требуют обновления backend.

@@ -2,6 +2,8 @@
 
 Сначала настройка по [прошлыйReadme](../logging/README-victoria.md)
 
+VictoriaMetrics и Grafana размещены в namespace `monitoring`, приложение и пробер — в `locals`. После переустановки VictoriaMetrics 06.11.2026 графики используют новую историю. Инструкции установки и проверки метрик: [ОтчётMetrics.md](../../ОтчётMetrics.md).
+
 ```bash
 minikube start -p minikube
 kubectl config use-context minikube

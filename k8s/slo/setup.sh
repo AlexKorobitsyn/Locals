@@ -28,8 +28,8 @@ kubectl apply -f k8s/06-backend.yaml -f k8s/07-frontend.yaml
 kubectl -n locals rollout restart deployment/app deployment/frontend
 kubectl -n locals rollout status deployment/app --timeout=300s
 kubectl -n locals rollout status deployment/frontend --timeout=300s
-helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts --version 0.49.0 -n default -f guide-vmsingle-values.yaml --wait --timeout 10m
 kubectl apply -f k8s/logging/bonuses-namespace.yaml
+helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts --version 0.49.0 -n monitoring -f guide-vmsingle-values.yaml --wait --timeout 10m
 kubectl apply -f k8s/slo/grafana-dashboard.yaml
 helm upgrade --install grafana grafana --repo https://grafana-community.github.io/helm-charts --version 14.0.0 -n monitoring -f k8s/slo/grafana-values.yaml --wait --timeout 10m
 python3 -m venv .venv

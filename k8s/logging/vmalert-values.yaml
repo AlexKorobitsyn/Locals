@@ -2,7 +2,7 @@ server:
   fullnameOverride: vmalert
   replicaCount: 1
   datasource:
-    url: http://victoria-logs-single-server.victoria-logs.svc.cluster.local:9428
+    url: http://vmsingle-victoria-metrics-single-server.monitoring.svc.cluster.local:8428
   extraArgs:
     loggerFormat: json
     rule.evalDelay: 5s
@@ -16,22 +16,71 @@ server:
   config:
     alerts:
       groups:
-        - name: locals-log-alerts
-          type: vlogs
+        - name: locals-service-alerts
+          type: prometheus
           interval: 15s
           rules:
-            - alert: LocalsTooMany404
+            - alert: LocalsLoginErrors
               expr: >-
-                _time:5m kubernetes.pod_namespace:="locals" logger:="APP.http" status:="404"
-                | stats count() as not_found
-                | filter not_found:>2
-              for: 30s
+                (100 *
+                (sum(rate(locals_login_operations_total{job="locals-pods", 
+                outcome="error"}[5m])))/
+                (sum(rate(locals_login_operations_total{job="locals-pods", outcome=~"success|error"}[5m]))) > 5)
+                and
+                (sum(increase(locals_login_operations_total{
+                job="locals-pods", outcome=~"success|error"}[5m]))>=10)
+              for: 1m
               labels:
-                severity: warning
+                severity: critical
                 service: locals-backend
               annotations:
-                summary: "Locals: минимум три ответа 404 за пять минут"
-                description: "Учебный алерт по HTTP-логам FastAPI; запрос и порог описаны в README6.md."
+                 summary: "Locals: внутренние ошибки входа"
+                 description: >-
+                    Ошибками завершились {{ printf "%.1f" $value }}%
+                    операций входа за последние 5 минут.
+                    Проверьте backend и PostgreSQL. 
+            - alert: LocalsAudioUploadErrors
+              expr: >-
+                (100 * (sum(rate(locals_audio_uploads_total
+                {job="locals-pods", outcome="error"}[5m])))/(
+                sum(rate(locals_audio_uploads_total{
+                job="locals-pods", outcome=~"success|error"}[5m]))) > 5) 
+                and 
+                (sum(increase(locals_audio_uploads_total{job="locals-pods", 
+                outcome=~"success|error"}[5m]))>=10)
+              for: 1m
+              labels:
+                severity: critical
+                service: locals-backend
+              annotations:
+                 summary: "Locals: ошибки загрузки аудио"
+                 description: >-
+                    Ошибками завершились {{ printf "%.1f" $value }}%
+                    операций загрузки аудио за последние 5 минут.
+                    Проверьте backend и MinIO.
+            - alert: LocalsHttpRequestErrors
+              expr: >-
+                (100 * (sum(rate(monitoring_locals_http_requests_total
+                {handler=~"/api/v1/.*",
+                handler!~"/api/v1/health/.*",
+                job="locals-pods", status=~"5.."}[5m])))/(
+                sum(rate(monitoring_locals_http_requests_total{ handler=~"/api/v1/.*",
+                handler!~"/api/v1/health/.*",
+                job="locals-pods"}[5m]))) > 5) 
+                and 
+                (sum(increase(monitoring_locals_http_requests_total{ handler=~"/api/v1/.*",
+                handler!~"/api/v1/health/.*",
+                job="locals-pods"}[5m]))>=20)
+              for: 1m
+              labels:
+                severity: critical
+                service: locals-backend
+              annotations:
+                 summary: "Locals: высокая доля HTTP 5** за 5 минут"
+                 description: >-
+                    5** Ошибками завершились {{ printf "%.1f" $value }}%
+                    HTTP запросов за последние 5 минут.
+                    Проверьте backend, frontend, PostgreSQL, MinIO.
 alertmanager:
   enabled: true
   fullnameOverride: alertmanager
