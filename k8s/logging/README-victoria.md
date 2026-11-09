@@ -46,7 +46,7 @@ kubectl -n locals rollout status deployment/frontend --timeout=180s
 ```
 
 ## VictoriaLogs, collector, Grafana и vmalert
-
+Внутри команды на подключени тг бота ещё
 ```bash
 helm upgrade --install victoria-logs-single victoria-logs-single \
   --repo https://victoriametrics.github.io/helm-charts/ --version 0.13.10 \
@@ -54,6 +54,12 @@ helm upgrade --install victoria-logs-single victoria-logs-single \
 helm upgrade --install victoria-logs-collector victoria-logs-collector \
   --repo https://victoriametrics.github.io/helm-charts/ --version 0.3.8 \
   --namespace victoria-logs-collector --create-namespace -f k8s/logging/victorialogs-collector-values.yaml --wait --timeout 5m
+kubectl apply -f k8s/logging/bonuses-namespace.yaml
+read -r -s -p 'Токен Telegram-бота: ' locals_telegram_token
+printf '\n'
+printf '%s' "$locals_telegram_token" | kubectl -n monitoring create secret generic alertmanager-telegram \
+  --from-file=bot-token=/dev/stdin --dry-run=client -o yaml | kubectl apply -f -
+unset locals_telegram_token
 bash k8s/logging/deploy-bonuses.sh
 helm list -A
 kubectl -n locals get pods,services
@@ -67,6 +73,16 @@ kubectl -n monitoring get deployments,pods,services,pvc
 ## Доступ из браузера
 
 Каждую команду оставил работать в отдельном терминале.
+
+VictoriaMetrics:
+
+```bash
+helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts/ --version 0.49.0 -n monitoring --create-namespace -f guide-vmsingle-values.yaml --wait
+```
+
+```bash
+kubectl -n monitoring port-forward svc/vmsingle-victoria-metrics-single-server 8428:8428
+```
 
 ```bash
 kubectl -n locals port-forward service/frontend 8080:80
@@ -108,7 +124,6 @@ kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | 
 
 ## Проверка логов и алерта
 
-Создал успешный запрос и три ответа 404:
 
 ```bash
 curl -i http://localhost:8080/api/v1/health/version
@@ -126,22 +141,4 @@ curl -fsS http://localhost:18880/api/v1/alerts
 curl -fsS http://localhost:19093/api/v2/alerts
 ```
 
-VictoriaMetrics:
 
-```bash
-helm upgrade --install vmsingle victoria-metrics-single --repo https://victoriametrics.github.io/helm-charts/ --version 0.49.0 -n monitoring --create-namespace -f guide-vmsingle-values.yaml --wait
-```
-
-```bash
-kubectl -n monitoring port-forward svc/vmsingle-victoria-metrics-single-server 8428:8428
-```
-
-Как проверить?:
-
-```bash
-python3 scripts/check_metrics.py
-```
-
-VictoriaMetrics работает в `monitoring`, приложение и PostgreSQL — в `locals`. Адрес datasource Grafana: `http://vmsingle-victoria-metrics-single-server.monitoring.svc.cluster.local:8428`. После переноса VictoriaMetrics 06.11.2026 собирается новая история; прежняя история не импортируется. Старый port-forward нужно остановить и запустить приведённую выше команду заново.
-
-В `guide-vmsingle-values.yaml` оставлен фильтр `default;kubernetes;https`: он выбирает сервис Kubernetes API, который находится в namespace `default`, и не задаёт namespace VictoriaMetrics.

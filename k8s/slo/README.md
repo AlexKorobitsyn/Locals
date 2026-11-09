@@ -1,6 +1,6 @@
 # SLI/SLO/SLA Locals
 
-Сначала настройка по [прошлыйReadme](../logging/README-victoria.md)
+Сначала настройка по [прошлыйReadme](../logging/README-victoria.md) k8s/logging/README-victoria.md
 
 VictoriaMetrics и Grafana размещены в namespace `monitoring`, приложение и пробер — в `locals`. После переустановки VictoriaMetrics 06.11.2026 графики используют новую историю. Инструкции установки и проверки метрик: [ОтчётMetrics.md](../../ОтчётMetrics.md).
 

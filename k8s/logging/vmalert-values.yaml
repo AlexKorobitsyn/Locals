@@ -81,6 +81,36 @@ server:
                     5** Ошибками завершились {{ printf "%.1f" $value }}%
                     HTTP запросов за последние 5 минут.
                     Проверьте backend, frontend, PostgreSQL, MinIO.
+            - alert: LocalsProberScenarioUnavailable
+              expr: >-
+                (
+                  locals_probe_success{
+                    job="locals-pods", pod=~"prober-.*"
+                  } == 0
+                )
+                and
+                (
+                  time() - locals_probe_last_completed_timestamp_seconds{
+                    job="locals-pods", pod=~"prober-.*"
+                  } < 90
+                )
+                and on (job, pod)
+                (
+                  up{
+                    job="locals-pods", pod=~"prober-.*"
+                  } == 1
+                )
+              for: 1m
+              labels:
+                severity: critical
+                service: locals-backend
+              annotations:
+                 summary: "Locals: недоступен сценарий {{ $labels.scenario }}"
+                 description: >-
+                    Проверки пробера {{ $labels.scenario }} неуспешны
+                    не менее минуты. Последний результат получен менее
+                    90 секунд назад, сбор с пробера работает.
+                    Проверьте backend и зависимости сценария.
 alertmanager:
   enabled: true
   fullnameOverride: alertmanager
@@ -99,10 +129,30 @@ alertmanager:
     global:
       resolve_timeout: 1m
     route:
-      receiver: local-ui
+      receiver: telegram
       group_by: [alertname, service]
       group_wait: 5s
       group_interval: 15s
       repeat_interval: 1h
     receivers:
-      - name: local-ui
+      - name: telegram
+        telegram_configs:
+          - bot_token_file: /etc/alertmanager/telegram/bot-token
+            chat_id: 758170159
+            send_resolved: true
+            parse_mode: ""
+            message: |-
+              {{ range .Alerts }}
+              [{{ .Status | toUpper }}] {{ .Labels.alertname }}
+              {{ .Annotations.summary }}
+              {{ .Annotations.description }}
+
+              {{ end }}
+  extraVolumes:
+    - name: telegram-token
+      secret:
+        secretName: alertmanager-telegram
+  extraVolumeMounts:
+    - name: telegram-token
+      mountPath: /etc/alertmanager/telegram
+      readOnly: true
