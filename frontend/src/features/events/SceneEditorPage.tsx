@@ -26,6 +26,7 @@ import { use_auth } from '../auth/AuthProvider';
 import { can_edit, use_event_types } from './EventPages';
 import { LocationPicker } from './LocationPicker';
 import { MAP_COORDINATE_PRECISION } from './map_constants';
+import { use_reverse_address } from './use_reverse_address';
 
 type Venue = components['schemas']['VenueOut'];
 type Event = components['schemas']['EventOut'];
@@ -107,6 +108,7 @@ function SceneEditor({
   const [address, set_address] = useState(
     initial && 'address' in initial ? initial.address || '' : '',
   );
+  const reverse = use_reverse_address(set_address);
   const [website, set_website] = useState(
     initial && 'website' in initial ? initial.website || '' : '',
   );
@@ -233,9 +235,13 @@ function SceneEditor({
               value={city_id}
               on_change={(value) => {
                 set_city_id(value);
-                if (!venues) {
+                if (value !== city_id) {
                   set_lat('');
                   set_lng('');
+                  if (venues) {
+                    reverse.cancel();
+                    set_address('');
+                  }
                 }
               }}
               required
@@ -258,6 +264,10 @@ function SceneEditor({
               if (!venues) set_venue_id(null);
               set_lat(point.lat.toFixed(MAP_COORDINATE_PRECISION));
               set_lng(point.lng.toFixed(MAP_COORDINATE_PRECISION));
+              if (venues) {
+                set_address('');
+                reverse.lookup(point);
+              }
             }}
           />
           <div className="form-row">
@@ -270,7 +280,13 @@ function SceneEditor({
                 step="any"
                 value={lat}
                 disabled={!venues && !!venue_id}
-                onChange={(event) => set_lat(event.target.value)}
+                onChange={(event) => {
+                  set_lat(event.target.value);
+                  if (venues) {
+                    reverse.cancel();
+                    set_address('');
+                  }
+                }}
                 required={venues}
               />
             </label>
@@ -283,7 +299,13 @@ function SceneEditor({
                 step="any"
                 value={lng}
                 disabled={!venues && !!venue_id}
-                onChange={(event) => set_lng(event.target.value)}
+                onChange={(event) => {
+                  set_lng(event.target.value);
+                  if (venues) {
+                    reverse.cancel();
+                    set_address('');
+                  }
+                }}
                 required={venues}
               />
             </label>
@@ -300,10 +322,35 @@ function SceneEditor({
                 Адрес
                 <input
                   value={address}
-                  onChange={(event) => set_address(event.target.value)}
+                  onChange={(event) => {
+                    reverse.cancel();
+                    set_address(event.target.value);
+                  }}
                   maxLength={DESCRIPTION_MAX_LENGTH}
                 />
               </label>
+              <small className="muted" aria-live="polite">
+                {reverse.state === 'loading'
+                  ? 'Определяем адрес выбранной точки…'
+                  : reverse.state === 'ready'
+                    ? 'Адрес найден. При необходимости уточните его вручную.'
+                    : reverse.state === 'missing'
+                      ? 'У этой точки нет адреса в справочнике. Введите его вручную.'
+                      : reverse.state === 'error'
+                        ? 'Не удалось определить адрес. Введите его вручную или повторите поиск.'
+                        : 'Выберите точку на карте — адрес заполнится автоматически.'}{' '}
+                {(reverse.state === 'error' || reverse.state === 'missing') && (
+                  <button type="button" className="text-button" onClick={reverse.retry}>
+                    Повторить поиск адреса
+                  </button>
+                )}
+              </small>
+              <small className="muted">
+                Адреса:{' '}
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+                  © OpenStreetMap contributors
+                </a>
+              </small>
               <label>
                 Вместимость
                 <input
@@ -376,7 +423,10 @@ function SceneEditor({
           )}
         </fieldset>
         {mutation.isError && <ErrorState error={mutation.error} />}
-        <button className="button primary" disabled={mutation.isPending || !name.trim()}>
+        <button
+          className="button primary"
+          disabled={mutation.isPending || !name.trim() || reverse.state === 'loading'}
+        >
           {mutation.isPending
             ? 'Сохраняем…'
             : initial

@@ -19,6 +19,7 @@ from APP.models.track import Track
 from APP.models.user import User
 from APP.models.venue import Venue
 from APP.schemas.rating import RatingPut, RatingResult
+from APP.services.experience import user_rating_weight
 
 TARGET_MODELS = {
     RatingTarget.track: Track,
@@ -28,7 +29,14 @@ TARGET_MODELS = {
 }
 
 
-def rating_average_expression(model, settings: Settings):
+def rating_average_expression(model):
+    return case(
+        ((model.ratings_count == 0) | (model.rating_weight == 0), None),
+        else_=model.rating_sum / model.rating_weight,
+    )
+
+
+def rating_rank_expression(model, settings: Settings):
     return case(
         (model.ratings_count == 0, None),
         else_=(
@@ -52,10 +60,8 @@ def with_my_rating(query, model, kind: str, viewer: User | None):
     ).add_columns(Rating.value.label("my_rating"))
 
 
-def set_rating_context(output, my_rating, settings: Settings):
+def set_rating_context(output, my_rating):
     output.my_rating = float(my_rating) if my_rating is not None else None
-    output.rating_prior_strength = settings.rating_prior_strength
-    output.rating_prior_mean = settings.rating_prior_mean
     return output
 
 
@@ -83,9 +89,7 @@ async def lock_target(session: AsyncSession, kind: RatingTarget, target_id: int)
     return target
 
 
-def rating_result(
-    target, kind: RatingTarget, my_rating, settings: Settings
-) -> RatingResult:
+def rating_result(target, kind: RatingTarget, my_rating) -> RatingResult:
     result = RatingResult(
         target_type=kind,
         target_id=target.id,
@@ -93,7 +97,7 @@ def rating_result(
         rating_weight=target.rating_weight,
         ratings_count=target.ratings_count,
     )
-    return set_rating_context(result, my_rating, settings)
+    return set_rating_context(result, my_rating)
 
 
 def record_rating_event(
@@ -131,7 +135,7 @@ async def put_rating(
             )
         )
         value = Decimal(str(payload.value))
-        weight = getattr(settings, f"rating_weight_{current_user.level.value}")
+        weight = user_rating_weight(current_user, settings)
         current_user.weight = weight
         old_sum, old_weight = Decimal("0"), Decimal("0")
         if rating is None:
@@ -165,7 +169,7 @@ async def put_rating(
             "rating_set",
             value,
         )
-        result = rating_result(target, payload.target_type, value, settings)
+        result = rating_result(target, payload.target_type, value)
     if payload.target_type == RatingTarget.track and target.user_id is not None:
         from APP.services.experience import claim_quality
 
@@ -213,5 +217,5 @@ async def delete_rating(
             await session.delete(rating)
             await session.flush()
             record_rating_event(session, user.id, kind, target_id, "rating_deleted")
-        result = rating_result(target, kind, None, settings)
+        result = rating_result(target, kind, None)
     return result

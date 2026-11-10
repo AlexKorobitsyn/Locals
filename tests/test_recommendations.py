@@ -112,6 +112,31 @@ def test_cold_start_quality_ranking_and_pagination(api_client, account, catalogu
     assert recommendations(api_client, playable_only=True)["total"] == 0
 
 
+def test_public_average_and_recommendation_rank_are_independent(
+    api_client, account, catalogue
+):
+    _, _, track = catalogue
+    sparse = track("Three perfect ratings")
+    established = track("Ten strong ratings")
+    for index in range(10):
+        _, voter = account(f"voter{index}")
+        rate(api_client, voter, "track", established, 4.5)
+        if index < 3:
+            rate(api_client, voter, "track", sparse, 5)
+
+    page = recommendations(api_client)
+    assert [item["id"] for item in page["items"]] == [established, sparse]
+    assert [item["rating_avg"] for item in page["items"]] == [4.5, 5]
+    assert page["items"][0]["score"]["quality_score"] == pytest.approx(
+        ((45 + 50 * 3) / 60 - 1) / 4
+    )
+    assert page["items"][1]["score"]["quality_score"] == pytest.approx(
+        ((15 + 50 * 3) / 53 - 1) / 4
+    )
+    catalog = result(api_client.get("/api/v1/tracks?sort=-rating_avg"))
+    assert [item["id"] for item in catalog["items"]] == [sparse, established]
+
+
 def test_favorites_affinity_negative_feedback_and_isolation(
     api_client, account, catalogue
 ):

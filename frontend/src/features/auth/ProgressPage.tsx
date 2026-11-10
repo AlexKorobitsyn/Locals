@@ -85,6 +85,10 @@ function Progress() {
               {experience.event_limit} будущих событий.
             </p>
             <p>
+              Вес вашей оценки: <strong>×{experience.rating_weight.toLocaleString('ru-RU')}</strong>
+              . Он учитывается в средней оценке музыки и площадок, а также в рекомендациях.
+            </p>
+            <p>
               Предлагать тексты, жанры, названия, площадки и события можно на любом уровне. Голоса
               сообщества и одобрение владельца превращают полезные предложения в опубликованный
               вклад.
@@ -150,7 +154,8 @@ function Progress() {
               <ol>
                 {experience.thresholds.map((threshold, index) => (
                   <li key={threshold}>
-                    {LEVEL_NAMES[index]} - от {threshold} XP
+                    {LEVEL_NAMES[index]} - от {threshold} XP · вес оценки ×
+                    {experience.rating_level_weights[index]?.toLocaleString('ru-RU')}
                   </li>
                 ))}
               </ol>

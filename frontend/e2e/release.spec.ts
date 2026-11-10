@@ -121,8 +121,11 @@ test('studio lists server publications on another device with pagination and own
   await page.getByRole('link', { name: `Редактировать ${track_title}`, exact: true }).click();
   await page.getByLabel('Название', { exact: true }).fill(`${track_title} Edited`);
   await page.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Изменения сохранены' })).toBeVisible();
-  await page.getByRole('link', { name: 'Вернуться в студию', exact: true }).click();
+  await expect(page).toHaveURL((url) => /^\/tracks\/\d+$/.test(url.pathname));
+  await expect(
+    page.getByRole('heading', { name: `${track_title} Edited`, exact: true }),
+  ).toBeVisible();
+  await page.goto('/studio');
   await page
     .getByRole('navigation', { name: 'Мои публикации' })
     .getByRole('link', { name: 'Треки', exact: true })
@@ -250,11 +253,13 @@ test('studio uploads cover and playable WAV to MinIO; failed attach retries with
     .getByLabel('Обложка', { exact: false })
     .setInputFiles({ name: 'cover.png', mimeType: 'image/png', buffer: COVER });
   await page.getByRole('button', { name: 'Создать артиста', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Артист создан' })).toBeVisible();
+  await expect(page).toHaveURL((url) => /^\/artists\/\d+$/.test(url.pathname));
+  await expect(page.getByRole('heading', { name: artist_name, exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Добавить альбом', exact: true }).click();
   await page.getByLabel('Название', { exact: true }).fill(album_name);
   await page.getByRole('button', { name: 'Создать альбом', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Релиз добавлен' })).toBeVisible();
+  await expect(page).toHaveURL((url) => /^\/albums\/\d+$/.test(url.pathname));
+  await expect(page.getByRole('heading', { name: album_name, exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Загрузить трек', exact: true }).click();
   await page.getByLabel('Название', { exact: true }).fill(track_name);
   await page.getByLabel('Аудиофайл', { exact: false }).setInputFiles({
@@ -285,10 +290,10 @@ test('studio uploads cover and playable WAV to MinIO; failed attach retries with
   await page.getByRole('button', { name: 'Опубликовать трек', exact: true }).click();
   await expect(page.getByText('Запись уже создана.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Повторить подключение файлов' }).click();
-  await expect(page.getByRole('heading', { name: 'Трек опубликован' })).toBeVisible();
+  await expect(page).toHaveURL((url) => /^\/tracks\/\d+$/.test(url.pathname));
+  await expect(page.getByRole('heading', { name: track_name, exact: true })).toBeVisible();
   expect(track_posts).toBe(1);
   expect(audio_uploads).toBe(2);
-  await page.getByRole('link', { name: 'Открыть трек', exact: true }).click();
   const track_id = Number(new URL(page.url()).pathname.split('/').at(-1));
   const headers = await bearer(request, credentials);
   const details = await request.get(`/api/v1/tracks/${track_id}`, { headers });
@@ -319,7 +324,10 @@ test('studio uploads cover and playable WAV to MinIO; failed attach retries with
     true,
   );
   await page.getByRole('button', { name: 'Сохранить изменения', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Изменения сохранены' })).toBeVisible();
+  await expect(page).toHaveURL(`/tracks/${track_id}`);
+  await expect(
+    page.getByRole('heading', { name: `${track_name} Edited`, exact: true }),
+  ).toBeVisible();
 });
 
 test('venue, event filters and editing; following exposes venue activity in the feed', async ({

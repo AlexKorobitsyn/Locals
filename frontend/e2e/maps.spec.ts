@@ -170,6 +170,9 @@ test('newcomer binds an event by clicking a venue and picks coordinates for a ve
   expect(saved_event.publication_status).toBe('pending');
   await expect(page.getByRole('heading', { name: event_name })).toBeVisible();
   expect((await request.get(`/api/v1/events/${saved_event.id}`)).status()).toBe(404);
+  await page.route('**/api/v1/geocoding/reverse?**', (route) =>
+    route.fulfill({ json: { address: 'Frontend City, Test Street, 1' } }),
+  );
   await page.goto('/venues/new');
   await page.getByLabel('Название', { exact: true }).fill(`New map venue ${crypto.randomUUID()}`);
   await page.getByRole('combobox', { name: 'Город', exact: true }).click();
@@ -179,13 +182,18 @@ test('newcomer binds an event by clicking a venue and picks coordinates for a ve
     .click({ position: { x: 180, y: 110 } });
   await expect(page.getByLabel('Широта', { exact: true })).not.toHaveValue('');
   await expect(page.getByLabel('Долгота', { exact: true })).not.toHaveValue('');
+  await expect(page.getByLabel('Адрес', { exact: true })).toHaveValue(
+    'Frontend City, Test Street, 1',
+  );
   const venue_saved = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname === '/api/v1/venues',
   );
   await page.getByRole('button', { name: 'Предложить площадку', exact: true }).click();
-  expect((await venue_saved).status()).toBe(201);
+  const saved_venue = await venue_saved;
+  expect(saved_venue.status()).toBe(201);
+  expect((await saved_venue.json()).address).toBe('Frontend City, Test Street, 1');
   await expect(
     page.getByText('Предложение ожидает принятия сообществом.', { exact: false }),
   ).toBeVisible();

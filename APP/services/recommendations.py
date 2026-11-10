@@ -36,7 +36,7 @@ from APP.schemas.recommendation import (
 from APP.services.engagement import set_engagement, with_engagement
 from APP.services.preferences import favorite_genres
 from APP.services.ratings import (
-    rating_average_expression,
+    rating_rank_expression,
     set_rating_context,
     with_my_rating,
 )
@@ -177,7 +177,7 @@ async def recommend_tracks(session, user, settings, limit, offset, playable_only
     rated_component = settings.recommendation_rated_weight * func.coalesce(
         func.avg(func.coalesce(affinities.c.affinity, 0)), 0
     )
-    average = rating_average_expression(Track, settings)
+    average = rating_rank_expression(Track, settings)
     quality_component = (
         settings.recommendation_quality_weight
         * (func.coalesce(average, settings.rating_prior_mean) - MIN_RATING)
@@ -307,9 +307,7 @@ async def recommend_tracks(session, user, settings, limit, offset, playable_only
             reasons=reasons,
             is_playable=row.is_playable,
         )
-        items.append(
-            set_engagement(set_rating_context(output, row.my_rating, settings), row)
-        )
+        items.append(set_engagement(set_rating_context(output, row.my_rating), row))
     return RecommendationPage(
         items=items,
         total=rows[0].total,

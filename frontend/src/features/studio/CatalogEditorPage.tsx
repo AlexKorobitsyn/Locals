@@ -1,6 +1,6 @@
 import { can_edit_public, can_moderate } from '../../app/permissions';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api, unwrap } from '../../api/client';
 import { ApiError } from '../../api/errors';
@@ -136,6 +136,7 @@ function CatalogEditor({
   initial_album?: Album;
 }) {
   const { user } = use_auth();
+  const navigate = useNavigate();
   const limits = use_upload_limits();
   const [name, set_name] = useState(
     initial ? ('name' in initial ? initial.name : initial.title) : '',
@@ -179,7 +180,6 @@ function CatalogEditor({
   const [image_file, set_image_file] = useState<File | null>(null);
   const [progress, set_progress] = useState(0);
   const [phase, set_phase] = useState('');
-  const [published, set_published] = useState<Record | null>(null);
   const [created_id, set_created_id] = useState<number | null>(null);
   const created = useRef<Record | null>(initial);
   const audio_cache = useRef<{ file: File; media: Media } | null>(null);
@@ -302,8 +302,8 @@ function CatalogEditor({
       return record!;
     },
     onSuccess: async (record) => {
-      set_published(record);
       await invalidate_music();
+      void navigate(`/${kind}/${record.id}`, { replace: true });
     },
     onError: async () => {
       await invalidate_music();
@@ -313,43 +313,6 @@ function CatalogEditor({
     event.preventDefault();
     mutation.mutate();
   }
-  if (published)
-    return (
-      <section className="panel publication-success">
-        <span className="eyebrow">В ЭФИРЕ / LOCALS</span>
-        <h1>
-          {initial
-            ? 'Изменения сохранены'
-            : kind === 'artists'
-              ? 'Артист создан'
-              : kind === 'albums'
-                ? 'Релиз добавлен'
-                : 'Трек опубликован'}
-        </h1>
-        <p>{name}</p>
-        <div className="actions">
-          <Link className="button primary" to={`/${kind}/${published.id}`}>
-            Открыть {kind === 'artists' ? 'артиста' : kind === 'albums' ? 'альбом' : 'трек'}
-          </Link>
-          {kind === 'artists' && (
-            <>
-              <Link className="button" to={`/studio/albums/new?artist_id=${published.id}`}>
-                Добавить альбом
-              </Link>
-              <Link className="button" to={`/studio/tracks/new?artist_id=${published.id}`}>
-                Загрузить трек
-              </Link>
-            </>
-          )}
-          {kind === 'albums' && (
-            <Link className="button" to={`/studio/tracks/new?album_id=${published.id}`}>
-              Загрузить трек
-            </Link>
-          )}
-          <Link to="/studio">Вернуться в студию</Link>
-        </div>
-      </section>
-    );
   return (
     <>
       <Link className="back-link" to="/studio">

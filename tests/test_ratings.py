@@ -66,20 +66,21 @@ def test_weighted_create_replace_delete_and_my_rating(
     listener, headers = account("listener")
     expert, expert_headers = account("expert")
     catalog_db.execute(
-        "UPDATE users SET level='experienced' WHERE id=:id", {"id": expert["id"]}
+        "UPDATE users SET level='experienced', experience_points=100 WHERE id=:id",
+        {"id": expert["id"]},
     )
     target = music["track"]["id"]
     first = put(api_client, "track", target, 4, headers)
     assert first.status_code == 200, first.text
-    assert first.json()["rating_avg"] == pytest.approx((4 + 50 * 3) / 51)
+    assert first.json()["rating_avg"] == 4
     assert first.json()["my_rating"] == 4 and first.json()["ratings_count"] == 1
     assert "rating_sum" not in first.json() and "rating_prior_mean" not in first.json()
     second = put(api_client, "track", target, 5, expert_headers)
     assert second.status_code == 200, second.text
-    assert second.json()["rating_avg"] == pytest.approx((4 + 5 * 2 + 50 * 3) / 53)
+    assert second.json()["rating_avg"] == pytest.approx((4 + 5 * 1.2) / 2.2)
     replacement = put(api_client, "track", target, 4.5, headers)
     assert replacement.status_code == 200 and replacement.json()["ratings_count"] == 2
-    assert replacement.json()["rating_avg"] == pytest.approx((4.5 + 10 + 150) / 53)
+    assert replacement.json()["rating_avg"] == pytest.approx((4.5 + 6) / 2.2)
     anonymous = api_client.get(f"/api/v1/tracks/{target}").json()
     assert (
         anonymous["my_rating"] is None
@@ -119,20 +120,23 @@ def test_weight_snapshot_on_level_change(api_client, music, catalog_db):
     target = music["artist"]["id"]
     assert put(api_client, "artist", target, 5, headers).status_code == 200
     catalog_db.execute(
-        "UPDATE users SET level='experienced' WHERE id=:id", {"id": user["id"]}
+        "UPDATE users SET level='experienced', experience_points=100 WHERE id=:id",
+        {"id": user["id"]},
     )
     assert catalog_db.execute("SELECT weight FROM ratings")[0]["weight"] == 1
-    assert api_client.get(f"/api/v1/artists/{target}", headers=headers).json()[
-        "rating_avg"
-    ] == pytest.approx(155 / 51)
-    assert put(api_client, "artist", target, 4.5, headers).status_code == 200
-    assert catalog_db.execute("SELECT weight FROM ratings")[0]["weight"] == 2
     assert (
-        catalog_db.execute("SELECT weight FROM users WHERE id=:id", {"id": user["id"]})[
-            0
-        ]["weight"]
-        == 2
+        api_client.get(f"/api/v1/artists/{target}", headers=headers).json()[
+            "rating_avg"
+        ]
+        == 5
     )
+    assert put(api_client, "artist", target, 4.5, headers).status_code == 200
+    assert catalog_db.execute("SELECT weight FROM ratings")[0]["weight"] == Decimal(
+        "1.2"
+    )
+    assert catalog_db.execute(
+        "SELECT weight FROM users WHERE id=:id", {"id": user["id"]}
+    )[0]["weight"] == Decimal("1.2")
     catalog_db.execute(
         "UPDATE users SET level='green' WHERE id=:id", {"id": user["id"]}
     )
@@ -141,18 +145,36 @@ def test_weight_snapshot_on_level_change(api_client, music, catalog_db):
 
 
 @pytest.mark.parametrize(
-    "level,weight", [("green", 1), ("experienced", 2), ("moderator", 2), ("admin", 2)]
+    "level,points,weight",
+    [
+        ("green", 0, "1"),
+        ("experienced", 100, "1.2"),
+        ("experienced", 300, "1.4"),
+        ("experienced", 700, "1.7"),
+        ("experienced", 1500, "2"),
+        ("experienced", 3000, "2.3"),
+        ("experienced", 6000, "2.6"),
+        ("experienced", 12000, "3"),
+        ("experienced", 25000, "3.5"),
+        ("moderator", 0, "4"),
+        ("admin", 0, "4"),
+    ],
 )
-def test_default_level_weights(api_client, music, catalog_db, level, weight):
+def test_default_level_weights(api_client, music, catalog_db, level, points, weight):
     catalog_db.execute(
-        "UPDATE users SET level=:level WHERE id=:id",
-        {"level": level, "id": music["user"]["id"]},
+        "UPDATE users SET level=:level, experience_points=:points WHERE id=:id",
+        {"level": level, "points": points, "id": music["user"]["id"]},
     )
     assert (
         put(api_client, "track", music["track"]["id"], 5, music["headers"]).status_code
         == 200
     )
-    assert catalog_db.execute("SELECT weight FROM ratings")[0]["weight"] == weight
+    assert catalog_db.execute("SELECT weight FROM ratings")[0]["weight"] == Decimal(
+        weight
+    )
+    progress = api_client.get("/api/v1/me/experience", headers=music["headers"]).json()
+    assert progress["rating_weight"] == float(weight)
+    assert len(progress["rating_level_weights"]) == 9
 
 
 def test_every_target_type_and_colliding_ids(api_client, music, catalog_db):
@@ -221,7 +243,7 @@ def test_rating_sort_nulls_and_settings(api_client, music, catalog_db):
         assert put(api_client, "artist", target, value, headers).status_code == 200
     page = api_client.get("/api/v1/artists?sort=-rating_avg", headers=headers).json()
     assert [item["id"] for item in page["items"]] == [ids[1], ids[0], ids[2]]
-    assert page["items"][0]["rating_avg"] == pytest.approx(30 / 11)
+    assert page["items"][0]["rating_avg"] == 5
     assert [
         item["id"]
         for item in api_client.get("/api/v1/artists?sort=rating_avg").json()["items"]
@@ -236,7 +258,7 @@ def test_rating_sort_nulls_and_settings(api_client, music, catalog_db):
 def test_fractional_weights_do_not_accumulate_rounding_error(
     api_client, music, catalog_db
 ):
-    api_client.app.state.settings.rating_weight_green = Decimal("0.123457")
+    api_client.app.state.settings.rating_level_weights[0] = Decimal("0.123457")
     for value in (1, 4.5, 2.5, 5, 1.5, 3, 4):
         assert (
             put(

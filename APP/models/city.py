@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Float, Identity, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Float, Identity, Index, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from APP.core.constants import NAME_MAX_LENGTH, ROLE_MAX_LENGTH
@@ -8,9 +8,16 @@ from APP.models.base import Base, TimestampMixin
 class City(TimestampMixin, Base):
     __tablename__ = "cities"
     __table_args__ = (
-        UniqueConstraint(
-            "name", "region", "country", postgresql_nulls_not_distinct=True
+        Index(
+            "uq_cities_manual_identity",
+            "name",
+            "region",
+            "country",
+            unique=True,
+            postgresql_nulls_not_distinct=True,
+            postgresql_where=text("geoname_id IS NULL"),
         ),
+        CheckConstraint("geoname_id > 0", name="geoname_id_positive"),
         CheckConstraint("length(btrim(name)) > 0", name="name_nonempty"),
         CheckConstraint("length(btrim(country)) > 0", name="country_nonempty"),
         CheckConstraint("lat BETWEEN -90 AND 90", name="latitude_valid"),
@@ -19,6 +26,7 @@ class City(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
+    geoname_id: Mapped[int | None] = mapped_column(unique=True)
     name: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH), index=True)
     region: Mapped[str | None] = mapped_column(String(NAME_MAX_LENGTH))
     country: Mapped[str] = mapped_column(String(NAME_MAX_LENGTH))

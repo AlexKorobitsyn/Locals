@@ -38,6 +38,14 @@ def experience_tier(user, settings):
     )
 
 
+def user_rating_weight(user, settings):
+    if user.level == UserLevel.admin:
+        return settings.rating_weight_admin
+    if user.level == UserLevel.moderator:
+        return settings.rating_weight_moderator
+    return settings.rating_level_weights[experience_tier(user, settings)]
+
+
 def experience_output(user, settings):
     tier = experience_tier(user, settings)
     return ExperienceOut(
@@ -45,6 +53,10 @@ def experience_output(user, settings):
         experience_tier=tier,
         experience_level=tier + 1,
         level_name=EXPERIENCE_LEVEL_NAMES[tier],
+        rating_weight=float(user_rating_weight(user, settings)),
+        rating_level_weights=[
+            float(weight) for weight in settings.rating_level_weights
+        ],
         thresholds=[0, *thresholds(settings)],
         contribution_limit=settings.contribution_limits[tier],
         event_limit=settings.event_legend_limit

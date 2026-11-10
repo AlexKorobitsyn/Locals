@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: import-cities-
+  namespace: locals
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: migrate
+          image: locals-backend:k8s
+          imagePullPolicy: Never
+          command: [alembic, upgrade, head]
+          envFrom:
+            - configMapRef: {name: locals-config}
+            - secretRef: {name: locals-secret}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+      containers:
+        - name: import-cities
+          image: locals-backend:k8s
+          imagePullPolicy: Never
+          command: [python, -m, APP.import_cities, --country, RU]
+          envFrom:
+            - configMapRef: {name: locals-config}
+            - secretRef: {name: locals-secret}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: "1", memory: 256Mi}

@@ -296,7 +296,7 @@ async def playlist_tracks(session, playlist_id, viewer, settings, limit, offset)
         PlaylistTrackItem(
             track=set_engagement(
                 set_rating_context(
-                    TrackRatedShort.model_validate(row.Track), row.my_rating, settings
+                    TrackRatedShort.model_validate(row.Track), row.my_rating
                 ),
                 row,
             ),

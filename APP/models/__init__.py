@@ -14,6 +14,7 @@ from APP.models.experience_award import ExperienceAward
 from APP.models.favorite import Favorite
 from APP.models.follow import Follow
 from APP.models.genre import Genre
+from APP.models.geocoding_cache import GeocodingCache
 from APP.models.listening_session import ListeningSession
 from APP.models.media import Media
 from APP.models.playlist import Playlist
@@ -41,6 +42,7 @@ __all__ = [
     "City",
     "EventLog",
     "Genre",
+    "GeocodingCache",
     "Rating",
     "Track",
     "TrackArtist",

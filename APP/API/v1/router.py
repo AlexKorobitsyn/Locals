@@ -13,6 +13,7 @@ from APP.API.v1.experience import router as experience_router
 from APP.API.v1.favorite import router as favorite_router
 from APP.API.v1.follow import router as follow_router
 from APP.API.v1.genre import router as genre_router
+from APP.API.v1.geocoding import router as geocoding_router
 from APP.API.v1.media import router as media_router
 from APP.API.v1.playlist import router as playlist_router
 from APP.API.v1.rating import router as rating_router
@@ -38,6 +39,7 @@ router.include_router(genre_router)
 router.include_router(rating_router)
 
 router.include_router(city_router)
+router.include_router(geocoding_router)
 router.include_router(venue_router)
 router.include_router(events_router)
 router.include_router(review_router)

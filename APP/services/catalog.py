@@ -175,7 +175,7 @@ async def get_detail(
     for key in ("albums_count", "tracks_count", "duration"):
         if key in row._mapping:
             setattr(output, key, row._mapping[key])
-    return set_engagement(set_rating_context(output, row.my_rating, settings), row)
+    return set_engagement(set_rating_context(output, row.my_rating), row)
 
 
 def sort_columns(kind: CatalogKind, sort: str, settings: Settings, model=None):
@@ -187,7 +187,7 @@ def sort_columns(kind: CatalogKind, sort: str, settings: Settings, model=None):
         "id": model.id,
         "created_at": model.created_at,
         "ratings_count": model.ratings_count,
-        "rating_avg": rating_average_expression(model, settings),
+        "rating_avg": rating_average_expression(model),
     }
     fields["name" if kind == "artist" else "title"] = (
         model.name if kind == "artist" else model.title
@@ -269,7 +269,7 @@ async def list_catalog(
         items=[
             set_engagement(
                 set_rating_context(
-                    LIST_SCHEMAS[kind].model_validate(row[0]), row.my_rating, settings
+                    LIST_SCHEMAS[kind].model_validate(row[0]), row.my_rating
                 ),
                 row,
             )

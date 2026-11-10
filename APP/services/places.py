@@ -80,6 +80,19 @@ async def city_page(session, limit, offset, q=None):
 async def create_city(session, payload, user):
     try:
         async with session.begin():
+            if (
+                await session.scalar(
+                    select(City.id)
+                    .where(
+                        City.name == payload.name,
+                        City.region == payload.region,
+                        City.country == payload.country,
+                    )
+                    .limit(1)
+                )
+                is not None
+            ):
+                raise HTTPException(status_code=409, detail="City already exists")
             city = City(**payload.model_dump())
             session.add(city)
             await session.flush()
@@ -128,7 +141,7 @@ def venue_output(row, viewer, settings, details=True):
     if details:
         output.events_count = row.events_count
         output.is_owner = viewer is not None and viewer.id == row.Venue.user_id
-    return set_engagement(set_rating_context(output, row.my_rating, settings), row)
+    return set_engagement(set_rating_context(output, row.my_rating), row)
 
 
 async def venue_detail(session, venue_id, viewer, settings):
@@ -161,7 +174,7 @@ async def venues_page(session, viewer, settings, limit, offset, sort, **location
         "id": Venue.id,
         "name": Venue.name,
         "created_at": Venue.created_at,
-        "rating_avg": rating_average_expression(Venue, settings),
+        "rating_avg": rating_average_expression(Venue),
         "ratings_count": Venue.ratings_count,
     }
     ordering = allowed_sort(fields, sort, Venue.id)

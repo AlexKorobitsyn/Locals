@@ -918,6 +918,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/geocoding/reverse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reverse */
+        get: operations["reverse_api_v1_geocoding_reverse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/venues": {
         parameters: {
             query?: never;
@@ -1351,7 +1368,8 @@ export interface paths {
         get: operations["metadata_api_v1_media__media_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Remove Media */
+        delete: operations["remove_media_api_v1_media__media_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1435,6 +1453,26 @@ export interface paths {
         };
         /** Tracks */
         get: operations["tracks_api_v1_recommendations_tracks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Metrics
+         * @description Endpoint that serves Prometheus metrics.
+         */
+        get: operations["metrics_metrics_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2137,6 +2175,10 @@ export interface components {
             experience_level: number;
             /** Level Name */
             level_name: string;
+            /** Rating Weight */
+            rating_weight: number;
+            /** Rating Level Weights */
+            rating_level_weights: number[];
             /** Thresholds */
             thresholds: number[];
             /** Contribution Limit */
@@ -2956,6 +2998,11 @@ export interface components {
             password: string;
             /** Display Name */
             display_name: string;
+        };
+        /** ReverseAddress */
+        ReverseAddress: {
+            /** Address */
+            address?: string | null;
         };
         /** ReviewCreate */
         ReviewCreate: {
@@ -5678,6 +5725,38 @@ export interface operations {
             };
         };
     };
+    reverse_api_v1_geocoding_reverse_get: {
+        parameters: {
+            query: {
+                lat: number;
+                lng: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReverseAddress"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     venues_api_v1_venues_get: {
         parameters: {
             query?: {
@@ -6936,6 +7015,35 @@ export interface operations {
             };
         };
     };
+    remove_media_api_v1_media__media_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                media_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     content_api_v1_media__media_id__content_get: {
         parameters: {
             query?: never;
@@ -7125,6 +7233,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    metrics_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

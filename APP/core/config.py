@@ -23,9 +23,9 @@ from APP.core.constants import (
     DEFAULT_QUALITY_MIN_RATERS,
     DEFAULT_QUALITY_MIN_RATING,
     DEFAULT_QUALITY_TRACK_POINTS,
+    DEFAULT_RATING_LEVEL_WEIGHTS,
     DEFAULT_RATING_PRIOR_MEAN,
     DEFAULT_RATING_PRIOR_STRENGTH,
-    DEFAULT_RATING_WEIGHT_GREEN,
     DEFAULT_RATING_WEIGHT_PRIVILEGED,
     DEFAULT_RECOMMENDATION_FAVORITE_WEIGHT,
     DEFAULT_RECOMMENDATION_QUALITY_WEIGHT,
@@ -40,6 +40,9 @@ from APP.core.constants import (
 )
 
 MAX_PORT = 65535
+RatingWeight = Annotated[
+    Decimal, Field(gt=0, max_digits=20, decimal_places=6, allow_inf_nan=False)
+]
 
 
 class Settings(BaseSettings):
@@ -51,6 +54,22 @@ class Settings(BaseSettings):
     )
     SERVICE_NAME: str = "locals-backend"
     app_name: str = "Music Service"
+    geonames_base_url: AnyHttpUrl = "https://download.geonames.org/export/dump/"
+    geonames_download_timeout_seconds: float = Field(default=60, gt=0)
+    geocoding_reverse_url: AnyHttpUrl | None = None
+    geocoding_user_agent: str = Field(
+        default="Locals/1.0 (+https://github.com/AlexKorobitsyn/Locals)", min_length=8
+    )
+    geocoding_timeout_seconds: float = Field(default=5, gt=0)
+    geocoding_request_interval_seconds: float = Field(default=1.1, ge=1)
+    geocoding_cache_ttl_seconds: int = Field(default=2_592_000, gt=0)
+    geocoding_failure_ttl_seconds: int = Field(default=30, gt=0)
+
+    @field_validator("geocoding_reverse_url", mode="before")
+    @classmethod
+    def empty_geocoding_url(cls, value):
+        return None if isinstance(value, str) and not value.strip() else value
+
     port: int = Field(default=8000, gt=0, le=MAX_PORT)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     database_url: SecretStr
@@ -164,17 +183,12 @@ class Settings(BaseSettings):
         max_digits=20,
         decimal_places=6,
     )
-    rating_weight_green: Decimal = Field(
-        default=Decimal(DEFAULT_RATING_WEIGHT_GREEN),
-        gt=0,
-        max_digits=20,
-        decimal_places=6,
-    )
-    rating_weight_experienced: Decimal = Field(
-        default=Decimal(DEFAULT_RATING_WEIGHT_PRIVILEGED),
-        gt=0,
-        max_digits=20,
-        decimal_places=6,
+    rating_level_weights: list[RatingWeight] = Field(
+        default_factory=lambda: [
+            Decimal(value) for value in DEFAULT_RATING_LEVEL_WEIGHTS
+        ],
+        min_length=len(DEFAULT_RATING_LEVEL_WEIGHTS),
+        max_length=len(DEFAULT_RATING_LEVEL_WEIGHTS),
     )
     rating_weight_moderator: Decimal = Field(
         default=Decimal(DEFAULT_RATING_WEIGHT_PRIVILEGED),
@@ -188,6 +202,22 @@ class Settings(BaseSettings):
         max_digits=20,
         decimal_places=6,
     )
+
+    @model_validator(mode="after")
+    def validate_rating_weights(self):
+        if any(
+            a >= b
+            for a, b in zip(self.rating_level_weights, self.rating_level_weights[1:])
+        ):
+            raise ValueError("Rating weights must increase with experience level")
+        if (
+            min(self.rating_weight_moderator, self.rating_weight_admin)
+            <= self.rating_level_weights[-1]
+        ):
+            raise ValueError(
+                "Staff rating weights must exceed every experience level weight"
+            )
+        return self
 
     recommendation_favorite_weight: Decimal = Field(
         default=Decimal(DEFAULT_RECOMMENDATION_FAVORITE_WEIGHT),

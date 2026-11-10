@@ -5,8 +5,6 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, computed_field
 
 from APP.core.constants import (
-    DEFAULT_RATING_PRIOR_MEAN,
-    DEFAULT_RATING_PRIOR_STRENGTH,
     MAX_RATING,
     MIN_RATING,
     NAME_MAX_LENGTH,
@@ -50,15 +48,6 @@ class InputSchema(BaseModel):
 class RatingFields(BaseSchema):
     rating_sum: Decimal = Field(default=Decimal("0"), exclude=True, ge=0)
     rating_weight: Decimal = Field(default=Decimal("0"), exclude=True, ge=0)
-    rating_prior_strength: Decimal = Field(
-        default=Decimal(DEFAULT_RATING_PRIOR_STRENGTH), exclude=True, gt=0
-    )
-    rating_prior_mean: Decimal = Field(
-        default=Decimal(DEFAULT_RATING_PRIOR_MEAN),
-        exclude=True,
-        ge=MIN_RATING,
-        le=MAX_RATING,
-    )
     ratings_count: NonNegativeInt = 0
     my_rating: RatingValue | None = None
     likes_count: NonNegativeInt = 0
@@ -69,10 +58,7 @@ class RatingFields(BaseSchema):
     def rating_avg(self) -> RatingAverage | None:
         if self.ratings_count == 0 or self.rating_weight == 0:
             return None
-        return float(
-            (self.rating_sum + self.rating_prior_strength * self.rating_prior_mean)
-            / (self.rating_weight + self.rating_prior_strength)
-        )
+        return float(self.rating_sum / self.rating_weight)
 
 
 class TimestampMixin(BaseSchema):

@@ -13,6 +13,8 @@ class ExperienceOut(BaseSchema):
     experience_tier: int = Field(ge=0, le=EXPERIENCE_TIER_COUNT)
     experience_level: int = Field(ge=1, le=9)
     level_name: str
+    rating_weight: float = Field(gt=0)
+    rating_level_weights: list[float] = Field(min_length=9, max_length=9)
     thresholds: list[int]
     contribution_limit: int
     event_limit: int

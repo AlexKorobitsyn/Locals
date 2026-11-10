@@ -23,7 +23,7 @@ export function RatingBadge({
 }) {
   return (
     <div className="rating-summary">
-      <span className="rating-badge">
+      <span className="rating-badge" title="Средняя оценка с учётом весов пользователей">
         <Star size={14} aria-hidden="true" />
         {rating_avg == null ? 'Нет оценок' : rating_avg.toFixed(2)}
       </span>

@@ -153,6 +153,9 @@ export function ProposalCard({ proposal }: { proposal: Proposal }) {
       await invalidate_music();
     },
   });
+  const can_vote = proposal.status === 'pending' && user && user.id !== proposal.user_id;
+  const can_review = proposal.status === 'pending' && proposal.can_review;
+  const can_withdraw = user?.id === proposal.user_id && proposal.status !== 'approved';
   return (
     <article className="panel admin-proposal">
       <div className="section-heading">
@@ -165,9 +168,11 @@ export function ProposalCard({ proposal }: { proposal: Proposal }) {
           <Link to={`/${proposal.target_type}s/${proposal.target_id}`}>Открыть запись</Link>
         ) : null}
       </div>
-      <p>
-        <Link to={`/users/${proposal.user_id}`}>Профиль автора</Link> ·{' '}
-        {STATUS_LABELS[proposal.status]}
+      <p className="proposal-meta">
+        <Link to={`/users/${proposal.user_id}`}>Профиль автора</Link>
+        <span className={`proposal-status proposal-status-${proposal.status}`}>
+          {STATUS_LABELS[proposal.status]}
+        </span>
       </p>
       <div className="admin-comparison">
         <div>
@@ -189,77 +194,97 @@ export function ProposalCard({ proposal }: { proposal: Proposal }) {
           автоматически.
         </p>
       )}
-      {proposal.reason && <p>Комментарий: {proposal.reason}</p>}
-      {proposal.status === 'pending' && user && user.id !== proposal.user_id && (
-        <button
-          className={`button ${proposal.is_voted_by_me ? 'primary' : ''}`}
-          disabled={vote.isPending}
-          onClick={() => vote.mutate()}
-        >
-          {proposal.is_voted_by_me ? 'Убрать голос' : 'Поддержать предложение'}
-        </button>
-      )}
-      {proposal.status === 'pending' && proposal.can_review && (
-        <>
-          <label>
-            Комментарий
-            <textarea
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              value={reason}
-              onChange={(event) => set_reason(event.target.value)}
-            />
-          </label>
-          {decision ? (
-            <div role="alertdialog" className="confirmation" aria-label="Решение по заявке">
-              <p>{decision === 'approve' ? 'Принять предложение?' : 'Отклонить предложение?'}</p>
+      {(can_vote || can_review || can_withdraw || proposal.reason) && (
+        <div className="proposal-footer">
+          <div className="proposal-actions">
+            {can_vote && (
               <button
-                className="button primary"
-                disabled={review.isPending}
-                onClick={() => review.mutate()}
+                className={`button ${proposal.is_voted_by_me ? 'primary' : ''}`}
+                disabled={vote.isPending}
+                onClick={() => vote.mutate()}
               >
-                Подтвердить
+                {proposal.is_voted_by_me ? 'Убрать голос' : 'Поддержать предложение'}
               </button>
-              <button className="button" onClick={() => set_decision(null)}>
-                Отмена
-              </button>
-            </div>
-          ) : (
-            <div className="actions">
-              <button
-                className="button primary"
-                disabled={!proposal.can_approve}
-                onClick={() => set_decision('approve')}
-              >
-                Одобрить
-              </button>
-              <button className="button danger" onClick={() => set_decision('reject')}>
-                Отклонить
-              </button>
-            </div>
-          )}
-        </>
-      )}
-      {user?.id === proposal.user_id &&
-        proposal.status !== 'approved' &&
-        (confirm_withdraw ? (
-          <div className="confirmation" role="alertdialog">
-            <p>Отозвать предложение?</p>
-            <button
-              className="button danger"
-              disabled={withdraw.isPending}
-              onClick={() => withdraw.mutate()}
-            >
-              Подтвердить отзыв
-            </button>
-            <button className="button" onClick={() => set_confirm_withdraw(false)}>
-              Отмена
-            </button>
+            )}
+            {can_review &&
+              (decision ? (
+                <div role="alertdialog" className="confirmation" aria-label="Решение по заявке">
+                  <p>
+                    {decision === 'approve' ? 'Принять предложение?' : 'Отклонить предложение?'}
+                  </p>
+                  <div className="actions">
+                    <button
+                      className={`button ${decision === 'reject' ? 'danger' : 'primary'}`}
+                      disabled={review.isPending}
+                      onClick={() => review.mutate()}
+                    >
+                      Подтвердить
+                    </button>
+                    <button
+                      className="button"
+                      disabled={review.isPending}
+                      onClick={() => set_decision(null)}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="actions">
+                  <button
+                    className="button primary"
+                    disabled={!proposal.can_approve}
+                    onClick={() => set_decision('approve')}
+                  >
+                    Одобрить
+                  </button>
+                  <button className="button danger" onClick={() => set_decision('reject')}>
+                    Отклонить
+                  </button>
+                </div>
+              ))}
+            {can_withdraw &&
+              (confirm_withdraw ? (
+                <div className="confirmation" role="alertdialog">
+                  <p>Отозвать предложение?</p>
+                  <div className="actions">
+                    <button
+                      className="button danger"
+                      disabled={withdraw.isPending}
+                      onClick={() => withdraw.mutate()}
+                    >
+                      Подтвердить отзыв
+                    </button>
+                    <button className="button" onClick={() => set_confirm_withdraw(false)}>
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="button" onClick={() => set_confirm_withdraw(true)}>
+                  Отозвать предложение
+                </button>
+              ))}
           </div>
-        ) : (
-          <button className="button" onClick={() => set_confirm_withdraw(true)}>
-            Отозвать предложение
-          </button>
-        ))}
+          {can_review ? (
+            <label className="proposal-comment">
+              Комментарий к решению
+              <textarea
+                rows={3}
+                placeholder="Необязательно"
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                value={reason}
+                onChange={(event) => set_reason(event.target.value)}
+              />
+            </label>
+          ) : proposal.reason ? (
+            <div className="proposal-comment">
+              <strong>Комментарий к решению</strong>
+              <p>{proposal.reason}</p>
+            </div>
+          ) : null}
+        </div>
+      )}
       {withdraw.isError && <ErrorState error={withdraw.error} />}
       {vote.isError && <ErrorState error={vote.error} />}
       {review.isError && <ErrorState error={review.error} />}
