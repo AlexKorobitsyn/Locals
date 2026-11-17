@@ -115,7 +115,7 @@
         "type": "prometheus",
         "uid": "locals-victoriametrics"
       },
-      "description": "Скорость HTTP-запросов в секунду к API, от пользователей.",
+      "description": "Средняя скорость прикладных HTTP-запросов к API за последние 5 минут. Включает запросы пользователей и пробера; /metrics и health-проверки исключены.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -148,7 +148,7 @@
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
         "percentChangeColorMode": "standard",
@@ -171,10 +171,10 @@
             "uid": "locals-victoriametrics"
           },
           "editorMode": "code",
-          "expr": "sum(rate(monitoring_locals_http_requests_total{job=\"locals-pods\", namespace=\"locals\", pod=~\"app-.*\", handler!~\"/metrics|/api/v1/health/.\"}[5m]))",
-          "instant": false,
+          "expr": "sum(rate(monitoring_locals_http_requests_total{job=\"locals-pods\", namespace=\"locals\", pod=~\"app-.*\", handler!~\"/metrics|/api/v1/health/.*\"}[5m]))",
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -258,7 +258,7 @@
         "type": "prometheus",
         "uid": "locals-victoriametrics"
       },
-      "description": "Скорость HTTP-запросов в секунду к API, от пользователей, с учётом кода статуса",
+      "description": "Средняя скорость прикладных HTTP-запросов к API за последние 5 минут по классам HTTP-статусов. Включает запросы пользователей и пробера; /metrics и health-проверки исключены.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -348,9 +348,9 @@
             "uid": "locals-victoriametrics"
           },
           "editorMode": "code",
-          "expr": "sum by (status)(rate(monitoring_locals_http_requests_total{job=\"locals-pods\", namespace=\"locals\", pod=~\"app-.*\", handler!~\"/metrics|/api/v1/health/.\"}[5m]))",
+          "expr": "sum by (status)(rate(monitoring_locals_http_requests_total{job=\"locals-pods\", namespace=\"locals\", pod=~\"app-.*\", handler!~\"/metrics|/api/v1/health/.*\"}[5m]))",
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "{{status}}",
           "range": true,
           "refId": "A"
         }
@@ -449,7 +449,7 @@
           "editorMode": "code",
           "expr": "histogram_quantile(\r\n  0.95,\r\n  sum by (le) (\r\n    rate(monitoring_locals_http_request_duration_seconds_bucket{\r\n      job=\"locals-pods\",\r\n      namespace=\"locals\",\r\n      pod=~\"app-.*\",\r\n      handler!~\"/metrics|/api/v1/health/.*\"\r\n    }[5m])\r\n  )\r\n)",
           "instant": false,
-          "legendFormat": "__auto",
+          "legendFormat": "p95",
           "range": true,
           "refId": "A"
         }
@@ -546,7 +546,7 @@
             "uid": "locals-victoriametrics"
           },
           "editorMode": "code",
-          "expr": "process_resident_memory_bytes{pod=~\"app-.*\", namespace=\"locals\", job=\"locals-pods\"}[5m]",
+          "expr": "process_resident_memory_bytes{pod=~\"app-.*\", namespace=\"locals\", job=\"locals-pods\"}",
           "instant": false,
           "interval": "0",
           "legendFormat": "{{pod}}",
@@ -758,5 +758,5 @@
   "timezone": "browser",
   "title": "locals-metrics-dashboard",
   "uid": "adcjpgg",
-  "version": 23
+  "version": 3
 }
