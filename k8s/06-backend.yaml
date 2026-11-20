@@ -9,7 +9,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata: {name: app, namespace: locals}
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels: {app: app}
   template:
@@ -23,7 +23,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: backend
-          image: locals-backend:k8s
+          image: locals-backend:v1
           imagePullPolicy: Never
           ports: [{name: http, containerPort: 8000}]
           envFrom:
